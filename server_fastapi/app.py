@@ -1,12 +1,12 @@
 """
-Flask WebSocket Chat Server (Gemini 2.5 Flash)
-=============================================
+FastAPI WebSocket Chat Server (Gemini 2.5 Flash)
+================================================
 - WebSocket endpoint with proper upgrade handling
 - Streams Gemini responses token-by-token to the client
 - Simple API key authentication via connection query param ?api_key=...
 
 Requirements (install once):
-  pip install flask flask-sock python-dotenv flask-cors google-generativeai
+  pip install fastapi uvicorn python-dotenv google-generativeai
 
 Environment variables (.env file next to this script or set in shell):
   GOOGLE_API_KEY=your_google_api_key
@@ -16,18 +16,18 @@ Environment variables (.env file next to this script or set in shell):
   ALLOWED_ORIGINS=http://localhost:3000    # comma-separated list, default "*"
 
 Run:
-  python run.py
+  uvicorn server_fastapi.run:app --host 0.0.0.0 --port 5001
 """
 
 import os
 import json
 import logging
-from urllib.parse import parse_qs
+from typing import List, Dict, Any, Optional
 
 from dotenv import load_dotenv
-from flask import Flask, request
-from flask_cors import CORS
-from flask_sock import Sock
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 try:
     import google.generativeai as genai
@@ -56,9 +56,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("chat-ws")
 
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS.split(",") if ALLOWED_ORIGINS != "*" else "*"}})
-sock = Sock(app)
+app = FastAPI(title="Gemini WebSocket Chat Server")
+
+# CORS
+origins = [o.strip() for o in ALLOWED_ORIGINS.split(",")] if ALLOWED_ORIGINS != "*" else ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # System prompt for loan assistant
 SYSTEM_PROMPT = """You are a professional loan assistant helping users apply for personal loans. 
@@ -94,29 +102,29 @@ def make_model():
     )
 
 
-def map_history_to_gemini(history):
+def map_history_to_gemini(history: Optional[List[Dict[str, Any]]]):
     """Map [{role, content}] to Gemini content list.
     Roles: user -> user, assistant/model -> model
     """
-    contents = []
+    contents: List[Dict[str, Any]] = []
     if not history:
         return contents
-    
+
     for msg in history:
         role = msg.get("role", "user")
         text = msg.get("content", "")
-        
+
         # Skip empty messages and system messages
         if not text or role == "system":
             continue
-            
+
         # Map roles: user stays user, assistant/model becomes model
         g_role = "user" if role == "user" else "model"
         contents.append({
             "role": g_role,
             "parts": [{"text": text}],
         })
-    
+
     return contents
 
 
@@ -135,7 +143,7 @@ def generate_stream(message: str, history=None):
     # Streaming generation with safety settings
     try:
         response = model.generate_content(
-            contents, 
+            contents,
             stream=True,
             generation_config=genai.types.GenerationConfig(
                 temperature=0.7,
@@ -144,7 +152,7 @@ def generate_stream(message: str, history=None):
                 max_output_tokens=1024,
             )
         )
-        
+
         for chunk in response:
             # chunk.text is usually available for streamed text
             delta = getattr(chunk, "text", None)
@@ -161,38 +169,38 @@ def generate_stream(message: str, history=None):
                     delta = None
             if delta:
                 yield delta
-                
+
     except Exception as e:
         logger.exception("Gemini streaming error: %s", e)
         raise
 
 
-@app.route("/health", methods=["GET"])
-def health():
+@app.get("/health")
+async def health():
     """Health check endpoint"""
-    return {"status": "ok", "model": MODEL_NAME}, 200
+    return JSONResponse({"status": "ok", "model": MODEL_NAME})
 
 
-@sock.route('/ws')
-def ws_handler(ws):
-    """WebSocket handler using flask-sock"""
-    
+@app.websocket("/ws")
+async def ws_handler(websocket: WebSocket):
     # Authentication via query param
-    args = request.args
-    client_key = args.get("api_key", "").strip()
-    
+    params = dict(websocket.query_params)
+    client_key = (params.get("api_key") or "").strip()
+
+    # Accept connection early to send errors over WS in standard protocol
+    await websocket.accept()
+
     if APP_API_KEY and client_key != APP_API_KEY:
         logger.warning(f"Unauthorized connection attempt with key: {client_key}")
-        ws.send(json.dumps({"type": "chat_error", "error": "unauthorized"}))
-        ws.close()
+        await websocket.send_text(json.dumps({"type": "chat_error", "error": "unauthorized"}))
+        await websocket.close()
         return
 
     logger.info("WebSocket client connected")
 
     try:
         while True:
-            # Receive message from client
-            raw = ws.receive()
+            raw = await websocket.receive_text()
             if raw is None:
                 break
 
@@ -200,7 +208,7 @@ def ws_handler(ws):
                 payload = json.loads(raw)
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON received: {e}")
-                ws.send(json.dumps({"type": "chat_error", "error": "invalid_json"}))
+                await websocket.send_text(json.dumps({"type": "chat_error", "error": "invalid_json"}))
                 continue
 
             event = payload.get("event")
@@ -212,9 +220,9 @@ def ws_handler(ws):
                 msg_id = data.get("message_id") or None
 
                 if not message:
-                    ws.send(json.dumps({
-                        "type": "chat_error", 
-                        "error": "empty_message", 
+                    await websocket.send_text(json.dumps({
+                        "type": "chat_error",
+                        "error": "empty_message",
                         "message_id": msg_id
                     }))
                     continue
@@ -222,43 +230,48 @@ def ws_handler(ws):
                 logger.info(f"Processing message: {message[:50]}...")
 
                 # Acknowledge start
-                ws.send(json.dumps({"type": "chat_start", "message_id": msg_id}))
+                await websocket.send_text(json.dumps({"type": "chat_start", "message_id": msg_id}))
 
                 # Stream deltas
                 try:
                     token_count = 0
                     for delta in generate_stream(message, history):
-                        ws.send(json.dumps({
-                            "type": "chat_delta", 
-                            "message_id": msg_id, 
+                        await websocket.send_text(json.dumps({
+                            "type": "chat_delta",
+                            "message_id": msg_id,
                             "delta": delta
                         }))
                         token_count += 1
-                    
+
                     logger.info(f"Streamed {token_count} tokens for message {msg_id}")
-                    ws.send(json.dumps({"type": "chat_complete", "message_id": msg_id}))
-                    
+                    await websocket.send_text(json.dumps({"type": "chat_complete", "message_id": msg_id}))
+
                 except Exception as e:
                     logger.exception(f"Error generating response: {e}")
-                    ws.send(json.dumps({
-                        "type": "chat_error", 
-                        "message_id": msg_id, 
+                    await websocket.send_text(json.dumps({
+                        "type": "chat_error",
+                        "message_id": msg_id,
                         "error": str(e)
                     }))
             else:
                 logger.warning(f"Unknown event type: {event}")
-                ws.send(json.dumps({"type": "chat_error", "error": f"unknown_event:{event}"}))
-                
+                await websocket.send_text(json.dumps({"type": "chat_error", "error": f"unknown_event:{event}"}))
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected")
     except Exception as e:
         logger.exception(f"WebSocket error: {e}")
     finally:
-        logger.info("WebSocket client disconnected")
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
+# Optional: allow running with `python server_fastapi/run.py`
 if __name__ == "__main__":
+    import uvicorn
     logger.info(f"Starting Gemini WebSocket server on 0.0.0.0:{PORT}")
     logger.info(f"Model: {MODEL_NAME}")
     logger.info(f"CORS Origins: {ALLOWED_ORIGINS}")
-    
-    # Run with Flask's built-in server (flask-sock handles WebSocket upgrade)
-    app.run(host="0.0.0.0", port=PORT, debug=False)
+    uvicorn.run("app:app", host="0.0.0.0", port=PORT, reload=False)
