@@ -94,6 +94,12 @@ const mockOffers: Offer[] = [
 ]
 
 export default function ChatPage() {
+  // WebSocket connection to Flask server
+  const wsRef = useRef<WebSocket | null>(null)
+  const pendingAssistantIdRef = useRef<number | null>(null)
+  const [wsReady, setWsReady] = useState(false)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const { theme, toggleTheme } = useTheme()
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -103,6 +109,97 @@ export default function ChatPage() {
         "Welcome to Decentralized Agentic AI Powered Loan Assistant.\n\nI will help you get a personalized loan in just a few minutes through our 5-step process:\n\n• Application Details\n• Loan Offers\n• Verification\n• Underwriting\n• Sanction Letter\n\nLet's start! What is your full name?",
     },
   ])
+
+  const addMessage = useCallback((message: Message) => {
+    setMessages((prev) => [...prev, message])
+  }, [])
+
+  // WebSocket connection setup
+  useEffect(() => {
+    const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5001/ws"
+    const API_KEY = process.env.NEXT_PUBLIC_WS_API_KEY || ""
+
+    const connectWebSocket = () => {
+      try {
+        const url = API_KEY ? `${WS_URL}?api_key=${encodeURIComponent(API_KEY)}` : WS_URL
+        const ws = new WebSocket(url)
+        wsRef.current = ws
+
+        ws.onopen = () => {
+          setWsReady(true)
+          console.log("WS connected to Gemini backend")
+        }
+
+        ws.onclose = () => {
+          setWsReady(false)
+          console.log("WS disconnected, attempting reconnect...")
+          // Attempt to reconnect after 3 seconds
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectWebSocket()
+          }, 3000)
+        }
+
+        ws.onerror = (err) => {
+          console.error("WS error", err)
+        }
+
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data)
+            if (!msg || !msg.type) return
+
+            if (msg.type === "chat_start") {
+              // Create a placeholder assistant message if not present
+              if (!pendingAssistantIdRef.current) {
+                const id = Date.now() + 2
+                pendingAssistantIdRef.current = id
+                addMessage({ id, role: "assistant", content: "" })
+              }
+            } else if (msg.type === "chat_delta") {
+              const id = pendingAssistantIdRef.current
+              if (!id) return
+              setMessages((prev) => {
+                return prev.map((m) =>
+                  m.id === id && m.role === "assistant"
+                    ? { ...m, content: (m.content || "") + (msg.delta || "") }
+                    : m
+                )
+              })
+            } else if (msg.type === "chat_complete") {
+              pendingAssistantIdRef.current = null
+            } else if (msg.type === "chat_error") {
+              console.error("chat_error", msg.error)
+              pendingAssistantIdRef.current = null
+              addMessage({ 
+                id: Date.now() + 3, 
+                role: "assistant", 
+                content: `I apologize, but I encountered an error. Please try again.` 
+              })
+            }
+          } catch (e) {
+            console.error("WS message parse error", e)
+          }
+        }
+
+        return ws
+      } catch (e) {
+        console.error("Failed to create WebSocket", e)
+        return null
+      }
+    }
+
+    const ws = connectWebSocket()
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+      try { 
+        if (ws) ws.close() 
+      } catch {}
+    }
+  }, [addMessage])
+
   const [input, setInput] = useState("")
   const [currentStage, setCurrentStage] = useState(0)
   const [agentMessage, setAgentMessage] = useState("")
@@ -112,7 +209,7 @@ export default function ChatPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [uploadType, setUploadType] = useState("")
   const [userProfile, setUserProfile] = useState<UserProfile>({})
-  const [collectionStep, setCollectionStep] = useState(0) // Track which detail we're collecting
+  const [collectionStep, setCollectionStep] = useState(0)
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
   
   // Voice playback states
@@ -144,7 +241,6 @@ export default function ChatPage() {
   const speak = useCallback(async (text: string, messageId?: number) => {
     if (!isVoiceEnabled || !text || isSpeakingRef.current) return
 
-    // Prevent duplicate speech for same message
     if (messageId && lastSpokenMessageIdRef.current === messageId) {
       return
     }
@@ -154,14 +250,12 @@ export default function ChatPage() {
       isSpeakingRef.current = true
       if (messageId) lastSpokenMessageIdRef.current = messageId
       
-      // Stop any currently playing audio
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current.currentTime = 0
         audioRef.current = null
       }
 
-      // Generate speech
       const audioBlob = await textToSpeech(text, VOICE_IDS.RACHEL)
       setIsGeneratingVoice(false)
       setIsSpeaking(true)
@@ -199,7 +293,6 @@ export default function ChatPage() {
     }
   }, [isVoiceEnabled])
 
-  // Stop speaking
   const stopSpeaking = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
@@ -211,7 +304,6 @@ export default function ChatPage() {
     setCurrentAudio(null)
   }, [])
 
-  // Toggle voice playback
   const toggleVoicePlayback = useCallback(() => {
     if (isSpeaking) {
       stopSpeaking()
@@ -223,20 +315,17 @@ export default function ChatPage() {
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage && lastMessage.role === "assistant" && isVoiceEnabled && !isSpeakingRef.current) {
-      // Don't speak if we already spoke this message
       if (lastSpokenMessageIdRef.current === lastMessage.id) {
         return
       }
       
-      // Clean the text for better speech (remove special characters)
       const cleanText = lastMessage.content
-        .replace(/[━─═]/g, '') // Remove box drawing characters
-        .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
-        .replace(/•/g, '') // Remove bullet points
+        .replace(/[┌├└│─]/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/•/g, '')
         .trim()
       
       if (cleanText) {
-        // Small delay to ensure message is rendered
         setTimeout(() => {
           speak(cleanText, lastMessage.id)
         }, 100)
@@ -262,13 +351,13 @@ export default function ChatPage() {
     }
   }, [])
 
-  // Initialize speech recognition (only once)
+  // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
       const SpeechRecognition = window.webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = true // Keep listening
-      recognitionRef.current.interimResults = true // Show interim results
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
       recognitionRef.current.lang = "en-US"
 
       recognitionRef.current.onstart = () => {
@@ -277,7 +366,6 @@ export default function ChatPage() {
       }
 
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        // Stop any AI speech when user starts talking
         if (isSpeakingRef.current && audioRef.current) {
           audioRef.current.pause()
           audioRef.current = null
@@ -297,18 +385,15 @@ export default function ChatPage() {
           }
         }
 
-        // Update input with final or interim transcript
         if (finalTranscript) {
           const finalText = finalTranscript.trim()
           setInput(finalText)
           pendingVoiceInputRef.current = finalText
           
-          // Clear any existing timeout
           if (autoSubmitTimeoutRef.current) {
             clearTimeout(autoSubmitTimeoutRef.current)
           }
           
-          // Auto-submit after 1.5 seconds of silence
           autoSubmitTimeoutRef.current = setTimeout(() => {
             if (pendingVoiceInputRef.current) {
               setIsListening(false)
@@ -318,7 +403,6 @@ export default function ChatPage() {
                 // Already stopped
               }
               
-              // Call handleSend directly
               setTimeout(() => {
                 if (handleSendRef.current) {
                   handleSendRef.current()
@@ -332,25 +416,20 @@ export default function ChatPage() {
       }
 
       recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-        // Handle specific errors
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
           console.error('Microphone permission denied')
           setMicPermission('denied')
           alert('Microphone access denied. Please allow microphone access in your browser settings.')
           setIsListening(false)
         } else if (event.error === 'no-speech') {
-          // User didn't speak - this is normal, just log
           console.log('No speech detected')
           setIsListening(false)
         } else if (event.error === 'aborted') {
-          // User cancelled - this is normal
           console.log('Speech recognition aborted')
           setIsListening(false)
         } else if (event.error === 'network') {
-          // Network errors are common and usually harmless - ignore silently
           console.log('Network error (this is normal and can be ignored)')
         } else {
-          // Log other unexpected errors
           console.warn('Speech recognition error:', event.error, event.message || '')
           setIsListening(false)
         }
@@ -373,17 +452,13 @@ export default function ChatPage() {
         }
       }
     }
-  }, []) // Only run once on mount
+  }, [])
 
   const showAgent = (message: string, duration = 2000) => {
     setAgentMessage(message)
     setShowAgentToast(true)
     setTimeout(() => setShowAgentToast(false), duration)
   }
-
-  const addMessage = useCallback((message: Message) => {
-    setMessages((prev) => [...prev, message])
-  }, [])
 
   const handleSend = useCallback(async () => {
     const currentInput = input.trim() || pendingVoiceInputRef.current.trim()
@@ -399,77 +474,78 @@ export default function ChatPage() {
     setInput("")
     pendingVoiceInputRef.current = ""
 
-    // Stage 0: Collecting Application Details
+    // Build conversation history for context
+    const conversationHistory = messages.map((m) => ({
+      role: m.role === "system" ? "assistant" : m.role,
+      content: m.content,
+    }))
+
+    // Add system context about the loan application process
+    const systemContext = {
+      role: "assistant",
+      content: `You are a helpful loan assistant. Current stage: ${currentStage === 0 ? "Application Details" : currentStage === 1 ? "Loan Offers" : currentStage === 2 ? "Verification" : currentStage === 3 ? "Underwriting" : "Sanction"}. Current collection step: ${collectionStep}. User profile: ${JSON.stringify(userProfile)}. Be concise and professional.`
+    }
+
+    // Send message to Flask WebSocket for Gemini LLM response
+    try {
+      const ws = wsRef.current
+      if (ws && wsReady && ws.readyState === WebSocket.OPEN) {
+        const payload = {
+          event: "chat_message",
+          data: {
+            message_id: `${Date.now()}`,
+            message: userInput,
+            history: [systemContext, ...conversationHistory],
+          },
+        }
+        ws.send(JSON.stringify(payload))
+      } else {
+        // WebSocket not ready, show error
+        addMessage({
+          id: Date.now() + 1,
+          role: "assistant",
+          content: "Sorry, I'm having trouble connecting to the server. Please wait a moment and try again.",
+        })
+      }
+    } catch (e) {
+      console.error("WS send error", e)
+      addMessage({
+        id: Date.now() + 1,
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+      })
+    }
+
+    // Local logic for specific workflow stages (document upload, offer selection, etc.)
+    // This runs alongside Gemini responses to handle UI state
     if (currentStage === 0) {
-      if (collectionStep === 0) {
-        // Collect name
+      // Application Details stage - collect information
+      if (collectionStep === 0 && !userProfile.name) {
         setUserProfile({ ...userProfile, name: userInput })
         setCollectionStep(1)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: `Great, ${userInput}!\n\nWhat's your monthly income? (in ₹)`,
-        })
-      } else if (collectionStep === 1) {
-        // Collect income
+      } else if (collectionStep === 1 && !userProfile.monthlyIncome) {
         const income = Number.parseInt(userInput.replace(/[^0-9]/g, ""))
-        if (income < 15000) {
-          addMessage({
-            id: Date.now() + 1,
-            role: "assistant",
-            content:
-              "I'm sorry, but the minimum monthly income requirement is ₹15,000. Unfortunately, we cannot proceed with your application at this time.",
-          })
-          return
+        if (!isNaN(income)) {
+          setUserProfile({ ...userProfile, monthlyIncome: income })
+          setCollectionStep(2)
         }
-        setUserProfile({ ...userProfile, monthlyIncome: income })
-        setCollectionStep(2)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "Perfect!  \n\nAre you:\n1. Salaried\n2. Self-Employed\n\nPlease type 1 or 2",
-        })
-      } else if (collectionStep === 2) {
-        // Collect employment type
+      } else if (collectionStep === 2 && !userProfile.employmentType) {
         const empType = userInput === "1" ? "Salaried" : userInput === "2" ? "Self-Employed" : userInput
         setUserProfile({ ...userProfile, employmentType: empType })
         setCollectionStep(3)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "Excellent!\n\nWhat's your email address?",
-        })
-      } else if (collectionStep === 3) {
-        // Collect email
+      } else if (collectionStep === 3 && !userProfile.email) {
         setUserProfile({ ...userProfile, email: userInput })
         setCollectionStep(4)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "Thank you!\n\nPlease provide your phone number:",
-        })
-      } else if (collectionStep === 4) {
-        // Collect phone
+      } else if (collectionStep === 4 && !userProfile.phone) {
         setUserProfile({ ...userProfile, phone: userInput })
         setCollectionStep(5)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content:
-            "Almost done!   \n\nHow much loan amount do you need? (in ₹)\n\nFor example: 500000 for ₹5 lakhs",
-        })
-      } else if (collectionStep === 5) {
-        // Collect loan amount
+      } else if (collectionStep === 5 && !userProfile.requestedAmount) {
         const amount = Number.parseInt(userInput.replace(/[^0-9]/g, ""))
-        setUserProfile({ ...userProfile, requestedAmount: amount })
-        setCollectionStep(6)
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "Last question!\n\nWhat's the purpose of this loan?\n\n(e.g., Home Renovation, Medical, Business, Education)",
-        })
-      } else if (collectionStep === 6) {
-        // Collect loan purpose & complete Stage 0
+        if (!isNaN(amount)) {
+          setUserProfile({ ...userProfile, requestedAmount: amount })
+          setCollectionStep(6)
+        }
+      } else if (collectionStep === 6 && !userProfile.loanPurpose) {
         setUserProfile({ ...userProfile, loanPurpose: userInput })
         
         addMessage({
@@ -481,15 +557,14 @@ export default function ChatPage() {
         showAgent("Master Agent processing your details...", 1500)
 
         setTimeout(() => {
-          setCurrentStage(1) // Move to Loan Offers stage
+          setCurrentStage(1)
           showAgent("Sales Agent fetching personalized offers from OfferMart...", 2000)
 
           setTimeout(() => {
-            const profile = { ...userProfile, loanPurpose: userInput, requestedAmount: Number.parseInt(userInput.replace(/[^0-9]/g, "")) }
+            const profile = { ...userProfile, loanPurpose: userInput }
             const income = profile.monthlyIncome || 50000
             const requested = profile.requestedAmount || 500000
             
-            // Generate dynamic offers based on income and requested amount
             const eligibleAmount = Math.min(requested, income * 24)
             const baseRate = 10.5
             
@@ -523,56 +598,15 @@ export default function ChatPage() {
             addMessage({
               id: Date.now(),
               role: "assistant",
-              content: `Perfect, ${profile.name}!   \n\nBased on your profile:\n• Monthly Income: ₹${new Intl.NumberFormat("en-IN").format(income)}\n• Employment: ${profile.employmentType}\n• Requested Amount: ₹${new Intl.NumberFormat("en-IN").format(requested)}\n\nHere are your pre-approved personalized loan offers from our OfferMart:\n\nPlease select the offer that suits you best:`,
+              content: `Perfect, ${profile.name}!\n\nBased on your profile:\n• Monthly Income: ₹${new Intl.NumberFormat("en-IN").format(income)}\n• Employment: ${profile.employmentType}\n• Requested Amount: ₹${new Intl.NumberFormat("en-IN").format(requested)}\n\nHere are your pre-approved personalized loan offers from our OfferMart:\n\nPlease select the offer that suits you best:`,
             })
             setShowOffers(true)
           }, 2000)
         }, 1500)
       }
     }
-    
-    // Stage 2: Verification - PAN and Document Upload
-    else if (currentStage === 2) {
-      // Validate PAN format (basic validation)
-      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
-      if (panRegex.test(userInput.toUpperCase())) {
-        addMessage({
-          id: Date.now() + 1,
-          role: "system",
-          content: `PAN ${userInput.toUpperCase()} verified successfully`,
-        })
+  }, [addMessage, collectionStep, currentStage, input, showAgent, userProfile, messages, wsReady])
 
-        showAgent("Verification Agent fetching credit score from CIBIL...", 2000)
-
-        setTimeout(() => {
-          const creditScore = Math.floor(Math.random() * (850 - 680)) + 680
-          addMessage({
-            id: Date.now(),
-            role: "system",
-            content: `Credit Score retrieved: ${creditScore}/900 (${creditScore >= 750 ? "Excellent" : creditScore >= 700 ? "Good" : "Fair"})`,
-          })
-
-          setTimeout(() => {
-            addMessage({
-              id: Date.now(),
-              role: "assistant",
-              content: `Great! Your credit score is ${creditScore}.\n\nNow, please upload your income proof document for verification:\n\n${userProfile.employmentType === "Salaried" ? "• Last 3 months' salary slips\n• OR Bank statement (last 6 months)" : "• ITR (last 2 years)\n• OR Bank statement (last 12 months)"}`,
-            })
-            setShowUpload(true)
-            setUploadType(userProfile.employmentType === "Salaried" ? "Salary Slip / Bank Statement" : "ITR / Bank Statement")
-          }, 1000)
-        }, 2000)
-      } else {
-        addMessage({
-          id: Date.now() + 1,
-          role: "assistant",
-          content: "Invalid PAN format. Please enter a valid PAN number (e.g., ABCDE1234F):",
-        })
-      }
-    }
-  }, [addMessage, collectionStep, currentStage, input, mockOffers, showAgent, userProfile])
-
-  // Update handleSendRef whenever handleSend changes
   useEffect(() => {
     handleSendRef.current = handleSend
   }, [handleSend])
@@ -594,15 +628,14 @@ export default function ChatPage() {
     showAgent("Master Agent initiating Verification process...", 1500)
 
     setTimeout(() => {
-      setCurrentStage(2) // Move to Verification stage
+      setCurrentStage(2)
       showAgent("Verification Agent checking KYC & Credit Bureau...", 2000)
 
       setTimeout(() => {
         addMessage({
           id: Date.now(),
           role: "assistant",
-          content:
-            `Now let's verify your identity and check your credit profile.   \n\nFor KYC verification, I need to verify your PAN card.\n\nPlease provide your PAN number:`,
+          content: `Now let's verify your identity and check your credit profile.\n\nFor KYC verification, I need to verify your PAN card.\n\nPlease provide your PAN number:`,
         })
       }, 2000)
     }, 1500)
@@ -634,11 +667,10 @@ export default function ChatPage() {
       showAgent("Master Agent contacting Underwriting Agent...", 1500)
 
       setTimeout(() => {
-        setCurrentStage(3) // Move to Underwriting stage
+        setCurrentStage(3)
         showAgent("Underwriting Agent evaluating risk profile & making decision...", 2500)
 
         setTimeout(() => {
-          // Mock credit score
           const creditScore = Math.floor(Math.random() * (850 - 700)) + 700
           const decision = creditScore >= 750 ? "APPROVED" : creditScore >= 700 ? "APPROVED" : "CONDITIONAL"
 
@@ -658,13 +690,13 @@ export default function ChatPage() {
             showAgent("Sanction Letter Generator creating your approval letter...", 1500)
 
             setTimeout(() => {
-              setCurrentStage(4) // Move to Sanction stage
+              setCurrentStage(4)
 
               setTimeout(() => {
                 addMessage({
                   id: Date.now(),
                   role: "assistant",
-                  content: `Congratulations, ${userProfile.name}!\n\nYour loan has been SANCTIONED!\n\nSanction Letter Details:\n━━━━━━━━━━━━━━━━━━━━━━\nApplication ID: LOAN_${Date.now()}\nApproved Amount: ₹${mockOffers[0].amount}\nInterest Rate: ${mockOffers[0].interest}% p.a.\nTenure: ${mockOffers[0].tenure}\nMonthly EMI: ₹${mockOffers[0].emi}\nProcessing Fee: ₹${mockOffers[0].processingFee}\n━━━━━━━━━━━━━━━━━━━━━━\n\nYour sanction letter has been digitally signed and recorded on blockchain for tamper-proof verification.\n\nA copy has been emailed to ${userProfile.email}\nSMS confirmation sent to ${userProfile.phone}\n\nFunds will be credited to your account within 24 hours after agreement signing!\n\nThank you for choosing Decentralized Agentic AI Powered Loan Assistant.`,
+                  content: `Congratulations, ${userProfile.name}!\n\nYour loan has been SANCTIONED!\n\nSanction Letter Details:\n┌────────────────────┐\nApplication ID: LOAN_${Date.now()}\nApproved Amount: ₹${mockOffers[0].amount}\nInterest Rate: ${mockOffers[0].interest}% p.a.\nTenure: ${mockOffers[0].tenure}\nMonthly EMI: ₹${mockOffers[0].emi}\nProcessing Fee: ₹${mockOffers[0].processingFee}\n└────────────────────┘\n\nYour sanction letter has been digitally signed and recorded on blockchain for tamper-proof verification.\n\nA copy has been emailed to ${userProfile.email}\nSMS confirmation sent to ${userProfile.phone}\n\nFunds will be credited to your account within 24 hours after agreement signing!\n\nThank you for choosing Decentralized Agentic AI Powered Loan Assistant.`,
                 })
 
                 addMessage({
@@ -689,24 +721,20 @@ export default function ChatPage() {
       }
       setIsListening(false)
     } else {
-      // Stop any current speech before starting to listen
       if (isSpeaking) {
         stopSpeaking()
       }
       
-      // Check if speech recognition is available
       if (!recognitionRef.current) {
         alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.')
         return
       }
 
-      // Request microphone permission
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        stream.getTracks().forEach(track => track.stop()) // Stop immediately, just checking permission
+        stream.getTracks().forEach(track => track.stop())
         setMicPermission('granted')
         
-        // Start speech recognition
         try {
           recognitionRef.current.start()
           console.log('Attempting to start speech recognition...')
@@ -737,6 +765,12 @@ export default function ChatPage() {
           </Link>
 
           <div className="flex items-center gap-2">
+            {/* WebSocket Status */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs">
+              <span className={`w-2 h-2 rounded-full ${wsReady ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+              <span className="text-muted-foreground">{wsReady ? 'Connected' : 'Disconnected'}</span>
+            </div>
+
             {/* Voice Control */}
             <button
               onClick={toggleVoicePlayback}
@@ -751,7 +785,7 @@ export default function ChatPage() {
               {isVoiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
-            {/* Stop Speaking Button (shown when speaking) */}
+            {/* Stop Speaking Button */}
             {isSpeaking && (
               <button
                 onClick={stopSpeaking}
@@ -789,7 +823,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Messages Container - Full Height */}
+      {/* Messages Container */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6" ref={containerRef}>
         <div className="max-w-4xl mx-auto py-6 space-y-4">
           {messages.map((message) => (
@@ -846,7 +880,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input Area - Fixed Bottom */}
+      {/* Input Area */}
       <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           {/* Status Indicator */}
@@ -907,7 +941,7 @@ export default function ChatPage() {
 
             <button
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() && !pendingVoiceInputRef.current.trim()}
               className="p-2.5 sm:p-3 rounded-xl bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 shrink-0"
               aria-label="Send message"
             >
@@ -915,7 +949,7 @@ export default function ChatPage() {
             </button>
           </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Decentralized Agentic AI Powered Loan Assistant with Voice Support • Your data is encrypted and secure.
+            Decentralized Agentic AI Powered Loan Assistant with Gemini • Your data is encrypted and secure.
           </p>
         </div>
       </div>
