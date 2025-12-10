@@ -1,7 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { ThemeProvider } from "@/contexts/theme-context"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -20,8 +20,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased selection:text-white dark:selection:text-white selection:bg-black dark:selection:bg-red-600" style={{ fontFamily: `${_geist.style.fontFamily}, ${_geistMono.style.fontFamily}` }}>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className={`${_geist.className} ${_geistMono.className} antialiased dark:selection:text-white dark:selection:bg-red-600`}>
+          {children}
+          <Toaster position="top-right" richColors />
       </body>
     </html>
   )

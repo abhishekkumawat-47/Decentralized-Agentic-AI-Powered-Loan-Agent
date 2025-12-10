@@ -45,6 +45,7 @@
     "date-fns": "4.1.0",
     "elevenlabs": "^1.59.0",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.23.25",
     "gsap": "latest",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",

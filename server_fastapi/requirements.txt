@@ -1,6 +1,11 @@
-
-python-dotenv==1.0.0
-google-generativeai==0.8.3
-
-uvicorn==0.38.0
-fastapi==0.124.0
+fastapi
+uvicorn[standard]
+authlib
+itsdangerous
+python-dotenv
+pyjwt
+httpx
+google-generativeai
+sqlalchemy
+psycopg2-binary
+alembic

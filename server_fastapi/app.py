@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 try:
     import google.generativeai as genai
@@ -58,7 +59,10 @@ logger = logging.getLogger("chat-ws")
 
 app = FastAPI(title="Gemini WebSocket Chat Server")
 
-# CORS
+# Add session middleware for auth (must be before other middleware)
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "devsecret"))
+
+# CORS - must be before routes
 origins = [o.strip() for o in ALLOWED_ORIGINS.split(",")] if ALLOWED_ORIGINS != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -67,6 +71,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import and include auth routes
+from auth import router as auth_router
+app.include_router(auth_router)
 
 # System prompt for loan assistant
 SYSTEM_PROMPT = """You are a professional loan assistant helping users apply for personal loans. 

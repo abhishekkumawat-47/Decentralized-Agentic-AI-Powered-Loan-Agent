@@ -4,13 +4,11 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Send, Mic, Bot, User, ArrowLeft, Volume2, VolumeX, Play, Pause } from "lucide-react"
 import Link from "next/link"
 import gsap from "gsap"
-import { ProgressTracker } from "@/components/progress-tracker"
-import { AgentToast } from "@/components/agent-toast"
-import { OfferCard } from "@/components/offer-card"
-import { FileUpload } from "@/components/file-upload"
-import { VoiceWaveform } from "@/components/voice-waveform"
-import { useTheme } from "@/contexts/theme-context"
-import { Moon, Sun } from "lucide-react"
+import { ProgressTracker } from "@/components/ChatBot/progress-tracker"
+import { AgentToast } from "@/components/ChatBot/agent-toast"
+import { OfferCard } from "@/components/ChatBot/offer-card"
+import { FileUpload } from "@/components/ChatBot/file-upload"
+import { VoiceWaveform } from "@/components/ChatBot/voice-waveform"
 import { textToSpeech, VOICE_IDS } from "@/lib/elevenlabs"
 
 // Web Speech API type declarations
@@ -99,8 +97,6 @@ export default function ChatPage() {
   const pendingAssistantIdRef = useRef<number | null>(null)
   const [wsReady, setWsReady] = useState(false)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const { theme, toggleTheme } = useTheme()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -117,11 +113,12 @@ export default function ChatPage() {
   // WebSocket connection setup
   useEffect(() => {
     const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5001/ws"
-    const API_KEY = process.env.NEXT_PUBLIC_WS_API_KEY || ""
+    const API_KEY = process.env.NEXT_PUBLIC_WS_API_KEY || "dev-local-key"
 
     const connectWebSocket = () => {
       try {
         const url = API_KEY ? `${WS_URL}?api_key=${encodeURIComponent(API_KEY)}` : WS_URL
+        console.log("Connecting to WebSocket with API key:", API_KEY ? "configured" : "missing")
         const ws = new WebSocket(url)
         wsRef.current = ws
 
@@ -170,10 +167,16 @@ export default function ChatPage() {
             } else if (msg.type === "chat_error") {
               console.error("chat_error", msg.error)
               pendingAssistantIdRef.current = null
+              
+              let errorMessage = "I apologize, but I encountered an error. Please try again."
+              if (msg.error === "unauthorized") {
+                errorMessage = "Connection unauthorized. Please check your API key configuration."
+              }
+              
               addMessage({ 
                 id: Date.now() + 3, 
                 role: "assistant", 
-                content: `I apologize, but I encountered an error. Please try again.` 
+                content: errorMessage
               })
             }
           } catch (e) {
@@ -796,15 +799,6 @@ export default function ChatPage() {
                 <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
-            </button>
           </div>
         </div>
       </header>

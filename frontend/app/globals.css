@@ -1,133 +1,215 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@theme {
+  --font-display: "Orbitron", sans-serif;
+  
+  --color-background: 0 0% 0%;
+  --color-foreground: 0 0% 100%;
 
-@theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
+  --color-card: 0 0% 4%;
+  --color-card-foreground: 0 0% 100%;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 0%;
-  --card: 0 0% 98%;
-  --card-foreground: 0 0% 0%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 0%;
-  --primary: 0 85% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 96%;
-  --secondary-foreground: 0 0% 0%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 0 85% 50%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 85% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 90%;
-  --input: 0 0% 90%;
-  --ring: 0 85% 50%;
+  --color-popover: 0 0% 4%;
+  --color-popover-foreground: 0 0% 100%;
+
+  --color-primary: #ff0000;
+  --color-primary-foreground: 0 0% 100%;
+
+  --color-secondary: 0 0% 8%;
+  --color-secondary-foreground: 0 0% 100%;
+
+  --color-muted: 0 0% 12%;
+  --color-muted-foreground: 0 0% 60%;
+
+  --color-accent: #ff0000;
+  --color-accent-foreground: 0 0% 100%;
+
+  --color-destructive: #ff0000;
+  --color-destructive-foreground: 0 0% 100%;
+
+  --color-border: 0 100% 30%;
+  --color-input: 0 0% 12%;
+  --color-ring: #ff0000;
+
   --radius: 0.5rem;
 }
 
-.dark {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 8%;
-  --card-foreground: 0 0% 100%;
-  --popover: 0 0% 8%;
-  --popover-foreground: 0 0% 100%;
-  --primary: 0 85% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 15%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 0 85% 50%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 85% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 20%;
-  --input: 0 0% 12%;
-  --ring: 0 85% 50%;
+@layer base {
+  :root {
+    /* Cyberpunk design tokens */
+    --glow-red: 0 0 30px hsl(0 100% 50% / 0.6);
+    --glow-strong: 0 0 60px hsl(0 100% 50% / 0.8);
+    --glow-subtle: 0 0 20px hsl(0 100% 50% / 0.3);
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: hsl(var(--border));
   }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px; /* Account for fixed header */
+  }
+
   body {
-    @apply bg-background text-foreground;
+    background: hsl(0 0% 0%);
+    color: hsl(0 0% 100%);
+    font-family: 'Rajdhani', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+  background: #181818;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 4px;
+  background-color: #ff0000;
+  border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
-}
-
-@keyframes pulse-wave {
-  0%,
-  100% {
-    transform: scaleY(1);
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    background: linear-gradient(135deg, hsl(0 0% 8% / 0.8) 0%, hsl(0 0% 4% / 0.9) 100%);
+    border: 1px solid hsl(0 100% 50% / 0.3);
+    backdrop-filter: blur(20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  50% {
-    transform: scaleY(2);
+
+  .glass-card:hover {
+    border-color: hsl(0 100% 50% / 0.6);
+    box-shadow: 0 0 40px hsl(0 100% 50% / 0.3), inset 0 0 20px hsl(0 100% 50% / 0.05);
+  }
+
+  /* Circuit board pattern */
+  .circuit-pattern {
+    background-image: 
+      linear-gradient(90deg, hsl(0 100% 50% / 0.05) 1px, transparent 1px),
+      linear-gradient(hsl(0 100% 50% / 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 25% 25%, hsl(0 100% 50% / 0.03) 2px, transparent 2px),
+      radial-gradient(circle at 75% 75%, hsl(0 100% 50% / 0.03) 2px, transparent 2px);
+    background-size: 60px 60px, 60px 60px, 120px 120px, 120px 120px;
+  }
+
+  /* Glowing text */
+  .text-glow {
+    color: #ff0000 !important;
+    text-shadow: 0 0 0px #ff0000, 0 0 5px #ff0000, 0 0 15px rgba(255, 0, 0, 0.5);
+  }
+
+  .text-glow-subtle {
+    color: #ff0000 !important;
+    text-shadow: 0 0 8px rgba(255, 0, 0, 0.3);
+  }
+
+  .btn-cyber {
+    background: linear-gradient(90deg, hsl(0 100% 40%), hsl(0 100% 50%));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-cyber::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  .btn-cyber:hover::before {
+    transform: translateX(100%);
+  }
+
+  /* Data cable/connection line */
+  .data-cable {
+    background: linear-gradient(90deg, hsl(0 100% 50% / 0.8), hsl(0 100% 60% / 0.4));
+    box-shadow: 0 0 10px hsl(0 100% 50% / 0.6);
+    animation: pulse-cable 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-cable {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* Section dot indicator */
+  .section-dot {
+    @apply w-2 h-2 rounded-full bg-primary;
+    box-shadow: 0 0 15px hsl(0 100% 50%);
+  }
+
+  /* Marquee animation */
+  .marquee {
+    animation: marquee 25s linear infinite;
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Floating animation */
+  .float-animation {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+
+  /* Pulse glow */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 10px hsl(0 100% 50% / 0.5); }
+    50% { box-shadow: 0 0 25px hsl(0 100% 50% / 0.8); }
+  }
+
+  /* Intense radial glow background */
+  .radial-glow {
+    background: radial-gradient(ellipse at center, hsl(0 100% 50% / 0.15) 0%, transparent 60%);
+  }
+
+  /* Scan line effect */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(0 0% 0% / 0.1) 2px,
+      hsl(0 0% 0% / 0.1) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Neon border */
+  .neon-border {
+    border: 1px solid hsl(0 100% 50% / 0.5);
+    box-shadow: 0 0 10px hsl(0 100% 50% / 0.3), inset 0 0 10px hsl(0 100% 50% / 0.1);
   }
 }
 
-.wave-bar {
-  animation: pulse-wave 0.5s ease-in-out infinite;
-}
-
-.wave-bar:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.wave-bar:nth-child(3) {
-  animation-delay: 0.2s;
-}
-
-.wave-bar:nth-child(4) {
-  animation-delay: 0.3s;
-}
-
-.wave-bar:nth-child(5) {
-  animation-delay: 0.4s;
+@layer utilities {
+  .font-display {
+    font-family: 'Orbitron', sans-serif;
+  }
 }
