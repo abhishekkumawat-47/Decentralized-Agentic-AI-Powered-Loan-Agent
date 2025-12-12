@@ -6,7 +6,7 @@ import Introduction from "@/components/Landing Page/introduction";
 import KeyBenefits from "@/components/Landing Page/keyBenefits";
 import Header from "@/components/Navbar/navbar";
 import PartnersMarquee from "@/components/Landing Page/techonology";
-import Footer from "@/components/ChatBot/footer";
+import Footer from "@/components/footer";
 import FinalCTA from "@/components/Landing Page/finalCTA";
 
 const Index = () => {

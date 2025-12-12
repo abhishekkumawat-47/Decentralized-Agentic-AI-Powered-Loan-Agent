@@ -35,6 +35,7 @@ ALLOWED_ORIGINS=http://localhost:3000
 
 ```
 python server_flask/run.py
+uvicorn app:app --host 0.0.0.0 --port 5001 --reload
 ```
 
 You should see the server listening on `0.0.0.0:5001`.

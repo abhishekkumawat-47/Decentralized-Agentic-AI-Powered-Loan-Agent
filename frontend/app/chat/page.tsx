@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Send, Mic, Bot, User, ArrowLeft, Volume2, VolumeX, Play, Pause } from "lucide-react"
+import { Send, Mic, Bot, User, ArrowLeft, Volume2, VolumeX, Pause } from "lucide-react"
 import Link from "next/link"
 import gsap from "gsap"
 import { ProgressTracker } from "@/components/ChatBot/progress-tracker"
@@ -755,70 +755,94 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="h-screen w-screen bg-background flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="shrink-0 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between max-w-7xl mx-auto">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-xs sm:text-sm font-medium">Back</span>
-          </Link>
+    <main className="h-screen w-screen bg-background flex overflow-hidden">
+      {/* Vertical Progress Tracker Sidebar */}
+      <aside className="hidden md:flex w-16 lg:w-20 shrink-0 bg-background/50 border-r border-border">
+        <ProgressTracker currentStage={currentStage} />
+      </aside>
 
-          <div className="flex items-center gap-2">
-            {/* WebSocket Status */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs">
-              <span className={`w-2 h-2 rounded-full ${wsReady ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-              <span className="text-muted-foreground">{wsReady ? 'Connected' : 'Disconnected'}</span>
-            </div>
-
-            {/* Voice Control */}
-            <button
-              onClick={toggleVoicePlayback}
-              className={`p-2 rounded-lg transition-all ${
-                isVoiceEnabled
-                  ? "bg-primary/10 text-primary hover:bg-primary/20"
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground"
-              }`}
-              aria-label="Toggle voice playback"
-              title={isVoiceEnabled ? "Voice On" : "Voice Off"}
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="shrink-0 bg-background/95 backdrop-blur-md border-b border-border">
+          <div className="px-4 sm:px-6 h-12 sm:h-14 flex items-center justify-between">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
-              {isVoiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
-            </button>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">Back</span>
+            </Link>
 
-            {/* Stop Speaking Button */}
-            {isSpeaking && (
+            {/* Status Indicator */}
+          {(isListening || isSpeaking || isGeneratingVoice) && (
+            <div className="mb-2 flex items-center justify-center text-xs sm:text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-2">
+              {isListening && (
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                  Listening...
+                </span>
+              )}
+              {isGeneratingVoice && (
+                <span className="flex items-center gap-1 text-orange-500">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                  Generating voice...
+                </span>
+              )}
+              {isSpeaking && !isGeneratingVoice && (
+                <span className="flex items-center gap-1 text-blue-500">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                  Speaking...
+                </span>
+              )}
+            </div>
+          )}
+
+            <div className="flex items-center gap-2">
+              {/* WebSocket Status */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs">
+                <span className={`w-2 h-2 rounded-full ${wsReady ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                <span className="text-muted-foreground hidden sm:inline">{wsReady ? 'Connected' : 'Disconnected'}</span>
+              </div>
+
+              {/* Voice Control */}
               <button
-                onClick={stopSpeaking}
-                className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all animate-pulse"
-                aria-label="Stop speaking"
-                title="Stop Speaking"
+                onClick={toggleVoicePlayback}
+                className={`p-2 rounded-lg cursor-pointer transition-all ${
+                  isVoiceEnabled
+                    ? "bg-primary/10 text-primary hover:bg-primary/20"
+                    : "bg-muted/50 text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label="Toggle voice playback"
+                title={isVoiceEnabled ? "Voice On" : "Voice Off"}
               >
-                <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                {isVoiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
-            )}
+
+              {/* Stop Speaking Button */}
+              {isSpeaking && (
+                <button
+                  onClick={stopSpeaking}
+                  className="p-2 rounded-lg cursor-pointer bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
+                  aria-label="Stop speaking"
+                  title="Stop Speaking"
+                >
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Progress Tracker */}
-      <div className="shrink-0 px-4 sm:px-6 py-3 bg-background/50 border-b border-border">
-        <div className="max-w-7xl mx-auto">
-          <ProgressTracker currentStage={currentStage} />
-        </div>
-      </div>
+        {/* Agent Toast */}
+        {showAgentToast && (
+          <div className="shrink-0 flex justify-center py-2 px-4">
+            <AgentToast message={agentMessage} isVisible={showAgentToast} />
+          </div>
+        )}
 
-      {/* Agent Toast */}
-      {showAgentToast && (
-        <div className="shrink-0 flex justify-center py-2 px-4">
-          <AgentToast message={agentMessage} isVisible={showAgentToast} />
-        </div>
-      )}
-
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6" ref={containerRef}>
+        {/* Messages Container */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6" ref={containerRef}>
         <div className="max-w-4xl mx-auto py-6 space-y-4">
           {messages.map((message) => (
             <div
@@ -865,7 +889,7 @@ export default function ChatPage() {
 
           {/* File Upload */}
           {showUpload && (
-            <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mt-4 cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500">
               <FileUpload onFileSelect={handleFileUpload} documentType={uploadType} />
             </div>
           )}
@@ -877,37 +901,13 @@ export default function ChatPage() {
       {/* Input Area */}
       <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          {/* Status Indicator */}
-          {(isListening || isSpeaking || isGeneratingVoice) && (
-            <div className="mb-2 flex items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-2">
-              {isListening && (
-                <span className="flex items-center gap-1 text-primary">
-                  <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                  Listening...
-                </span>
-              )}
-              {isGeneratingVoice && (
-                <span className="flex items-center gap-1 text-orange-500">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                  Generating voice...
-                </span>
-              )}
-              {isSpeaking && !isGeneratingVoice && (
-                <span className="flex items-center gap-1 text-blue-500">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                  Speaking...
-                </span>
-              )}
-            </div>
-          )}
-          
           <div className="flex items-end gap-2 sm:gap-3">
             <button
               onClick={toggleVoice}
               disabled={micPermission === 'denied'}
               className={`
-                p-2.5 sm:p-3 rounded-xl transition-all shrink-0 relative
-                ${isListening ? "bg-primary text-primary-foreground shadow-lg shadow-primary/50 animate-pulse" : "bg-muted/80 text-muted-foreground hover:text-foreground hover:bg-muted"}
+                p-2.5 sm:p-3 cursor-pointer rounded-full border border-white transition-all shrink-0 relative
+                ${isListening ? "text-primary-foreground" : "bg-muted/80 text-muted-foreground hover:text-foreground hover:bg-muted"}
                 ${micPermission === 'denied' ? 'opacity-50 cursor-not-allowed' : ''}
               `}
               aria-label="Voice input"
@@ -919,7 +919,7 @@ export default function ChatPage() {
                   : "Start voice input (Click to speak)"
               }
             >
-              {isListening ? <VoiceWaveform /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+              {isListening ? <Mic /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <div className="flex-1 relative">
@@ -936,7 +936,7 @@ export default function ChatPage() {
             <button
               onClick={handleSend}
               disabled={!input.trim() && !pendingVoiceInputRef.current.trim()}
-              className="p-2.5 sm:p-3 rounded-xl bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 shrink-0"
+              className="p-2.5 sm:p-3 cursor-pointer rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 shrink-0"
               aria-label="Send message"
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -946,6 +946,7 @@ export default function ChatPage() {
             Decentralized Agentic AI Powered Loan Assistant with Gemini • Your data is encrypted and secure.
           </p>
         </div>
+      </div>
       </div>
     </main>
   )

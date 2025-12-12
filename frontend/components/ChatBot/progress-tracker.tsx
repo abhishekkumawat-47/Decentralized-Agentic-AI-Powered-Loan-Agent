@@ -2,39 +2,39 @@
 
 import { useEffect, useRef } from "react"
 import gsap from "gsap"
-import { Check, FileText, Gift, Shield, TrendingUp, FileCheck } from "lucide-react"
+import { Check } from "lucide-react"
 
-// 5-Stage Realistic Loan Process Flow
+// 5-Stage Loan Process Flow
 const stages = [
   { 
     id: 0, 
     label: "Application", 
-    description: "Basic details & eligibility",
-    icon: FileText 
+    description: "Start",
+    icon: "1" 
   },
   { 
     id: 1, 
-    label: "Loan Offers", 
-    description: "Personalized offers from OfferMart",
-    icon: Gift 
+    label: "Offers", 
+    description: "Compare",
+    icon: "2" 
   },
   { 
     id: 2, 
     label: "Verification", 
-    description: "KYC, Credit Score & Documents",
-    icon: Shield 
+    description: "KYC",
+    icon: "3" 
   },
   { 
     id: 3, 
     label: "Underwriting", 
-    description: "Risk assessment & approval",
-    icon: TrendingUp 
+    description: "Review",
+    icon: "4"
   },
   { 
     id: 4, 
     label: "Sanction", 
-    description: "Sanction letter generation",
-    icon: FileCheck 
+    description: "Approved",
+    icon: "5"
   },
 ]
 
@@ -68,56 +68,50 @@ export function ProgressTracker({ currentStage }: ProgressTrackerProps) {
   }, [currentStage])
 
   return (
-    <div className="w-full px-4 py-3 bg-card/30 backdrop-blur-sm rounded-xl border border-border/50">
-      <div className="flex items-center justify-between gap-2">
+    <div className="h-full w-full flex flex-col items-center justify-center py-6 px-2">
+      <div className="flex flex-col items-center gap-3">
         {stages.map((stage, index) => {
-          const Icon = stage.icon
           const isActive = index === currentStage
           const isCompleted = index < currentStage
           
           return (
-            <div key={stage.id} className="flex items-center flex-1">
+            <div key={stage.id} className="flex flex-col items-center">
               <div
                 ref={(el) => {
                   if (el) stepsRef.current[index] = el
                 }}
-                className="flex flex-col items-center w-full relative"
+                className="flex flex-col items-center relative group"
               >
                 <div
                   className={`
-                    w-12 h-12 rounded-full flex items-center justify-center text-sm font-medium transition-all relative
+                    w-10 h-10 lg:w-12 lg:h-12 cursor-pointer rounded-full flex items-center justify-center font-medium transition-all relative
                     ${
                       isCompleted
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/50"
                         : isActive
                           ? "bg-primary text-primary-foreground shadow-lg shadow-primary/50"
-                          : "bg-muted border-2 border-border text-muted-foreground"
+                          : "bg-muted/50 border-2 border-border text-muted-foreground"
                     }
                   `}
                 >
                   {isCompleted ? (
-                    <Check className="w-6 h-6" />
+                    <Check className="w-5 h-5 lg:w-6 lg:h-6" />
                   ) : (
-                    <Icon className="w-6 h-6" />
+                    <span className="text-lg lg:text-xl">{stage.icon}</span>
                   )}
-                  {isActive && <div className="pulse-ring absolute inset-0 rounded-full bg-primary/50" />}
                 </div>
-                <div className="mt-2 text-center">
-                  <span
-                    className={`block text-xs font-semibold ${
-                      index <= currentStage ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {stage.label}
-                  </span>
-                  <span className="block text-[10px] text-muted-foreground mt-0.5 max-w-[100px] mx-auto">
-                    {stage.description}
-                  </span>
+                
+                {/* Tooltip on hover */}
+                <div className="absolute left-full ml-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-red-500 backdrop-blur-md border border-primary/30 rounded-lg px-3 py-2 shadow-lg shadow-primary/20 z-10">
+                  <p className="text-xs font-semibold text-foreground">{stage.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{stage.description}</p>
                 </div>
               </div>
+              
+              {/* Vertical connector line */}
               {index < stages.length - 1 && (
-                <div className="flex-1 h-0.5 mx-2 -mt-8">
-                  <div className={`h-full transition-all ${index < currentStage ? "bg-primary" : "bg-border"}`} />
+                <div className="w-0.5 h-8 lg:h-10 my-1">
+                  <div className={`w-full h-full transition-all ${index < currentStage ? "bg-primary" : "bg-border"}`} />
                 </div>
               )}
             </div>
