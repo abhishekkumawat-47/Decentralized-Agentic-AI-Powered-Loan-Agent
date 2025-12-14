@@ -757,7 +757,7 @@ export default function ChatPage() {
   return (
     <main className="h-screen w-screen bg-background flex overflow-hidden">
       {/* Vertical Progress Tracker Sidebar */}
-      <aside className="hidden md:flex w-16 lg:w-20 shrink-0 bg-background/50 border-r border-border">
+      <aside className="hidden z-20 md:flex w-16 lg:w-20 shrink-0 bg-background/50 border-r border-border">
         <ProgressTracker currentStage={currentStage} />
       </aside>
 

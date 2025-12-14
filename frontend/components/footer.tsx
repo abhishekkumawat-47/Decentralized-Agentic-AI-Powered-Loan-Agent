@@ -1,20 +1,8 @@
 "use client"
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear();
-
-  const footerLinks = {
-    Product: [
-      { label: 'Features', href: '#features' },
-      { label: 'How it Works', href: '#how-it-works' },
-      { label: 'Apply Now', href: '/chat' },
-    ],
-  };
-
-
   return (
     <footer className="relative py-4 sm:py-12 md:py-8">
       <div className="text-center">

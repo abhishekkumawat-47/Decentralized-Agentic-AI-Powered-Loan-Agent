@@ -102,8 +102,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     }
     app_jwt = create_jwt(payload)
 
-    # Set httpOnly cookie and redirect to frontend success page
-    response = RedirectResponse(url=f"{FRONTEND_URL}/auth/success?token={app_jwt}", status_code=302)
+    response = RedirectResponse(url=f"{FRONTEND_URL}/en/auth/success?token={app_jwt}", status_code=302)
     response.set_cookie(
         key="session",
         value=app_jwt,

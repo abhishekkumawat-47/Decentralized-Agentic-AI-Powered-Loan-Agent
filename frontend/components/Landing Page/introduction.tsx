@@ -5,25 +5,27 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Ban, SearchCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const oldWay = [
-  { text: 'Slow approval process' },
-  { text: 'Human bias in decisions' },
-  { text: 'Manual documentation' },
-  { text: 'Centralized control' },
-];
-
-const newWay = [
-  { text: 'Instant automated decisions' },
-  { text: 'Unbiased AI analysis' },
-  { text: 'On-chain verification' },
-  { text: 'Fully decentralized' },
-];
-
 const Introduction = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const t = useTranslations();
+
+  const oldWay = [
+    { text: t('introduction.traditional.point1') },
+    { text: t('introduction.traditional.point2') },
+    { text: t('introduction.traditional.point3') },
+    { text: t('introduction.traditional.point4') },
+  ];
+
+  const newWay = [
+    { text: t('introduction.ourSolution.point1') },
+    { text: t('introduction.ourSolution.point2') },
+    { text: t('introduction.ourSolution.point3') },
+    { text: t('introduction.ourSolution.point4') },
+  ];
 
   useEffect(() => {
     if (sectionRef.current) {
@@ -58,7 +60,7 @@ const Introduction = () => {
           className="text-center mb-16"
         >
           <h2 className="font-display  text-center text-3xl md:text-4xl font-bold text-primary text-glow tracking-wider mb-4">
-            THE OLD WAY IS BROKEN
+            {t("introduction.title")}
           </h2>
         </motion.div>
 
@@ -67,7 +69,7 @@ const Introduction = () => {
           {/* Traditional Finance */}
           <div className="glass-card rounded-xl p-8 border-primary/50" style={{ boxShadow: '0 0 30px hsl(0 100% 50% / 0.2)' }}>
             <h3 className="font-display text-xl font-bold text-primary text-glow-subtle mb-6 tracking-wide">
-              Traditional Finance
+              {t("introduction.traditional.title")}
             </h3>
             <div className="space-y-4">
               {oldWay.map((item, index) => (
@@ -82,7 +84,7 @@ const Introduction = () => {
           {/* NeoFin Agentic AI */}
           <div className="glass-card rounded-xl p-8 border-primary/50" style={{ boxShadow: '0 0 30px hsl(0 100% 50% / 0.2)' }}>
             <h3 className="font-display text-xl font-bold text-primary text-glow-subtle mb-6 tracking-wide">
-              Our Agentic AI Solution
+              {t("introduction.ourSolution.title")}
            </h3>
             <div className="space-y-4">
               {newWay.map((item, index) => (

@@ -1,7 +1,11 @@
+"use client";
+
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const FinalCTA = () => {
+  const t = useTranslations();
 
   return (
     <section className="py-32 relative overflow-hidden">
@@ -21,17 +25,17 @@ const FinalCTA = () => {
           className="text-center"
         >
           <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-wider mb-8">
-            READY TO{' '}
-            <span className="text-primary text-glow">AUTOMATE</span>
+            {t("finalCTA.readyTo")}{' '}
+            <span className="text-primary text-glow">{t("finalCTA.automate")}</span>
             <br />
-            YOUR FINANCES?
+            {t("finalCTA.yourFinances")}
           </h2>
           
-          <Link href="/chat">
+          <Link href="/en/chat">
           <motion.button
             className="btn-cyber cursor-pointer px-12 py-5 text-foreground font-display font-bold text-xl uppercase tracking-widest rounded-lg"
           >
-            Try Agent Now
+            {t("finalCTA.cta")}
           </motion.button>
             </Link>
         </motion.div>

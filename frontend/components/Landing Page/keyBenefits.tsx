@@ -4,44 +4,46 @@ import { motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useTranslations } from 'next-intl';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const benefits = [
-  {
-    number: '01',
-    title: 'INSTANT DECISIONS',
-    description: 'Complete loan journeys in under Few Minutes with automated agent orchestration.',
-  },
-  {
-    number: '02',
-    title: 'TRANSPARENT DECISIONS',
-    description: 'Every approval and rejection is logged on blockchain for complete auditability.',
-  },
-  {
-    number: '03',
-    title: 'ZERO HUMAN ERROR',
-    description: 'Agentic AI follows strict workflows with guardrails to remove manual mistakes.',
-  },
-  {
-    number: '04',
-    title: 'FASTER VERIFICATION',
-    description: 'Automated KYC, OCR, and credit checks remove manual delays completely.',
-  },
-  {
-    number: '05',
-    title: 'BUILT-IN COMPLIANCE',
-    description: 'Blockchain-backed audit trails make regulatory checks and reporting effortless.',
-  },
-  {
-    number: '06',
-    title: 'COST-EFFICIENT AI',
-    description: 'Small Language Models cut inference costs by 97% with no drop in reasoning quality.',
-  },
-];
-
 const KeyBenefits = () => {
   const cardsRef = useRef<HTMLDivElement[]>([]);
+  const t = useTranslations();
+
+  const benefits = [
+    {
+      number: '01',
+      titleKey: 'keyBenefits.benefit1.title',
+      descriptionKey: 'keyBenefits.benefit1.description',
+    },
+    {
+      number: '02',
+      titleKey: 'keyBenefits.benefit2.title',
+      descriptionKey: 'keyBenefits.benefit2.description',
+    },
+    {
+      number: '03',
+      titleKey: 'keyBenefits.benefit3.title',
+      descriptionKey: 'keyBenefits.benefit3.description',
+    },
+    {
+      number: '04',
+      titleKey: 'keyBenefits.benefit4.title',
+      descriptionKey: 'keyBenefits.benefit4.description',
+    },
+    {
+      number: '05',
+      titleKey: 'keyBenefits.benefit5.title',
+      descriptionKey: 'keyBenefits.benefit5.description',
+    },
+    {
+      number: '06',
+      titleKey: 'keyBenefits.benefit6.title',
+      descriptionKey: 'keyBenefits.benefit6.description',
+    },
+  ];
 
   useEffect(() => {
     const cards = cardsRef.current;
@@ -82,7 +84,7 @@ const KeyBenefits = () => {
         >
           <span className="section-dot" />
           <h2 className="font-display text-center text-2xl md:text-3xl font-bold tracking-wider text-foreground">
-            WHY CHOOSE OUR SOLUTION
+            {t("keyBenefits.title")}
           </h2>
           <span className="section-dot" />
         </motion.div>
@@ -91,20 +93,19 @@ const KeyBenefits = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {benefits.map((benefit, index) => (
             <div
-              key={benefit.title}
+              key={benefit.number}
               ref={(el) => { if (el) cardsRef.current[index] = el; }}
               className="glass-card rounded-xl p-6 group"
             >
               <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
                 className="w-16 h-16 mb-4 rounded-full bg-card border border-primary/30 flex items-center justify-center text-primary group-hover:border-primary/70 transition-all group-hover:shadow-[0_0_20px_hsl(0_100%_50%/0.3)]"
               >
                 {benefit.number}
               </motion.div>
               <h3 className="font-display text-base font-bold mb-2 text-foreground tracking-wide">
-                {benefit.title}
+                {t(benefit.titleKey)}
               </h3>
-              <p className="text-sm text-muted-foreground tracking-wide">{benefit.description}</p>
+              <p className="text-sm text-muted-foreground tracking-wide">{t(benefit.descriptionKey)}</p>
             </div>
           ))}
         </div>

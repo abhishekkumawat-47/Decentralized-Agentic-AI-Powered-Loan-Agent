@@ -1,0 +1,133 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "benefits": "Benefits",
+    "tryAgent": "Try Our Agent"
+  },
+  "hero": {
+    "title": {
+      "decentralized": "DECENTRALIZED",
+      "agenticAI": "AGENTIC AI",
+      "loanAgent": "LOAN AGENT"
+    },
+    "subtitle": "Autonomous borrowing. Instant, private, and governed by intelligence.",
+    "cta": "Try Our Agent"
+  },
+  "introduction": {
+    "title": "THE OLD WAY IS BROKEN",
+    "traditional": {
+      "title": "Traditional Finance",
+      "point1": "Slow approval process",
+      "point2": "Human bias in decisions",
+      "point3": "Manual documentation",
+      "point4": "Centralized control"
+    },
+    "ourSolution": {
+      "title": "Our Agentic AI Solution",
+      "point1": "Instant automated decisions",
+      "point2": "Unbiased AI analysis",
+      "point3": "On-chain verification",
+      "point4": "Fully decentralized"
+    }
+  },
+  "howItWorks": {
+    "title": "YOUR AUTONOMOUS JOURNEY",
+    "steps": {
+      "step1": {
+        "title": "START & UNDERSTAND",
+        "description": "User begins through chat or voice. Master Agent understands intent and creates the session."
+      },
+      "step2": {
+        "title": "VERIFY & VALIDATE",
+        "description": "Verification Agent checks KYC details, processes documents and stores secure hashes on blockchain."
+      },
+      "step3": {
+        "title": "ANALYZE & DECIDE",
+        "description": "Underwriting Agent fetches credit score, applies approval rules and finalizes eligibility."
+      },
+      "step4": {
+        "title": "GENERATE SANCTION",
+        "description": "System creates a digitally signed sanction letter and stores it securely in IPFS."
+      },
+      "step5": {
+        "title": "CONFIRM & COMPLETE",
+        "description": "User receives the sanction link and blockchain transaction ID, completing the loan journey."
+      }
+    }
+  },
+  "keyBenefits": {
+    "title": "WHY CHOOSE OUR SOLUTION",
+    "benefit1": {
+      "title": "INSTANT DECISIONS",
+      "description": "Complete loan journeys in under Few Minutes with automated agent orchestration."
+    },
+    "benefit2": {
+      "title": "TRANSPARENT DECISIONS",
+      "description": "Every approval and rejection is logged on blockchain for complete auditability."
+    },
+    "benefit3": {
+      "title": "ZERO HUMAN ERROR",
+      "description": "Agentic AI follows strict workflows with guardrails to remove manual mistakes."
+    },
+    "benefit4": {
+      "title": "FASTER VERIFICATION",
+      "description": "Automated KYC, OCR, and credit checks remove manual delays completely."
+    },
+    "benefit5": {
+      "title": "BUILT-IN COMPLIANCE",
+      "description": "Blockchain-backed audit trails make regulatory checks and reporting effortless."
+    },
+    "benefit6": {
+      "title": "COST-EFFICIENT AI",
+      "description": "Small Language Models cut inference costs by 97% with no drop in reasoning quality."
+    }
+  },
+  "technology": {
+    "title": "POWERED BY CUTTING-EDGE TECHNOLOGY",
+    "subtitle": "Built with the latest AI and blockchain innovations"
+  },
+  "finalCTA": {
+    "readyTo": "READY TO",
+    "automate": "AUTOMATE",
+    "yourFinances": "YOUR FINANCES?",
+    "cta": "Try Agent Now"
+  },
+  "footer": {
+    "company": "Company",
+    "about": "About Us",
+    "careers": "Careers",
+    "contact": "Contact",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "security": "Security",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "api": "API",
+    "rights": "All rights reserved.",
+    "tagline": "Autonomous lending powered by AI"
+  },
+  "chat": {
+    "title": "AI Loan Assistant",
+    "placeholder": "Type your message or ask about loans...",
+    "send": "Send",
+    "listening": "Listening...",
+    "speaking": "Speaking...",
+    "uploadDocument": "Upload Document",
+    "dragDrop": "Drag and drop files here or click to browse",
+    "processing": "Processing your request..."
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?"
+  }
+}

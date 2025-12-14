@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useTranslations } from 'next-intl';
 
 const HeroSection = () => {
+  const t = useTranslations();
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-24 pb-12 overflow-hidden">
@@ -22,10 +24,10 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="font-display text-3xl md:text-5xl lg:text-6xl font-bold tracking-wider leading-tight mb-6"
           >
-            <span className="text-foreground">DECENTRALIZED</span>{" "}
-            <span className="text-primary text-glow">AGENTIC AI</span>
+            <span className="text-foreground">{t("hero.title.decentralized")}</span>{" "}
+            <span className="text-primary text-glow">{t("hero.title.agenticAI")}</span>
             <br />
-            <span className="text-foreground">LOAN AGENT</span>
+            <span className="text-foreground">{t("hero.title.loanAgent")}</span>
           </motion.h1>
 
           {/* Subtext */}
@@ -35,12 +37,11 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 tracking-wide"
           >
-            Autonomous borrowing. Instant, private, and governed by
-            intelligence.
+            {t("hero.subtitle")}
           </motion.p>
 
           {/* CTA Button */}
-          <Link href="/chat">
+          <Link href="/en/chat">
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, y: 0 }}
@@ -48,7 +49,7 @@ const HeroSection = () => {
             
             className="btn-cyber cursor-pointer px-10 py-4 text-foreground font-display font-bold text-lg uppercase tracking-widest rounded"
           >
-            Try Our Agent
+            {t("hero.cta")}
           </motion.button>
           </Link>
         </div>

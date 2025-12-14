@@ -59,8 +59,13 @@ logger = logging.getLogger("chat-ws")
 
 app = FastAPI(title="Gemini WebSocket Chat Server")
 
-# Add session middleware for auth (must be before other middleware)
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "devsecret"))
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=os.getenv("SESSION_SECRET", "supersecretdevkey12345"),
+    max_age=3600,  # 1 hour session
+    same_site="lax",
+    https_only=False  # True ---> production
+)
 
 # CORS - must be before routes
 origins = [o.strip() for o in ALLOWED_ORIGINS.split(",")] if ALLOWED_ORIGINS != "*" else ["*"]

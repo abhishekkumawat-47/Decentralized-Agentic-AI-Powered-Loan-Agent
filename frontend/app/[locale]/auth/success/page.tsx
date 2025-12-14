@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from '@/routing'
 import { toast } from 'sonner'
 
 function AuthSuccessContent() {
@@ -17,12 +18,12 @@ function AuthSuccessContent() {
       localStorage.setItem('session_token', token)
       toast.success('Authentication successful')
     } else {
-      toast.error('Authentication failed - no token received')
+      toast.error('Authentication failed, no token received')
     }
     
-    // Redirect to home after a short delay
+    // Redirect to home after a short delay using locale-aware router
     const timer = setTimeout(() => {
-      window.location.href = '/'
+      router.push('/')
     }, 1500)
 
     return () => clearTimeout(timer)
