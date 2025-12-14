@@ -10,6 +10,10 @@ const languages = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
   { code: 'pa-Guru', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ' },
+  { code: 'mwr', name: 'Marwadi', nativeName: 'मारवाड़ी' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
 ];
 
 export default function LanguageSwitcher() {
