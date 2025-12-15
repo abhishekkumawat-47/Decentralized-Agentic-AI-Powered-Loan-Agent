@@ -4,59 +4,14 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Send, Mic, Bot, User, ArrowLeft, Volume2, VolumeX, Pause } from "lucide-react"
 import Link from "next/link"
 import gsap from "gsap"
+import { useLocale } from "next-intl"
 import { ProgressTracker } from "@/components/ChatBot/progress-tracker"
 import { AgentToast } from "@/components/ChatBot/agent-toast"
 import { OfferCard } from "@/components/ChatBot/offer-card"
 import { FileUpload } from "@/components/ChatBot/file-upload"
-import { VoiceWaveform } from "@/components/ChatBot/voice-waveform"
-import { textToSpeech, VOICE_IDS } from "@/lib/elevenlabs"
-
-// Web Speech API type declarations
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string
-  message?: string
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList
-  resultIndex: number
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number
-  item(index: number): SpeechRecognitionResult
-  [index: number]: SpeechRecognitionResult
-}
-
-interface SpeechRecognitionResult {
-  readonly length: number
-  item(index: number): SpeechRecognitionAlternative
-  [index: number]: SpeechRecognitionAlternative
-  readonly isFinal: boolean
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string
-  readonly confidence: number
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void) | null
-  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void) | null
-  onend: ((this: SpeechRecognition, ev: Event) => void) | null
-  onstart: ((this: SpeechRecognition, ev: Event) => void) | null
-  start(): void
-  stop(): void
-}
-
-declare global {
-  interface Window {
-    webkitSpeechRecognition: new () => SpeechRecognition
-  }
-}
+import { VoiceAssistant } from "@/components/ChatBot/voice-assistant"
+import { textToSpeech, VOICE_IDS, stopSpeaking } from "@/lib/TextToSpeech"
+import type { ISpeechRecognition, ISpeechRecognitionEvent, ISpeechRecognitionErrorEvent } from "@/types/web-speech-api"
 
 interface Message {
   id: number
@@ -92,6 +47,23 @@ const mockOffers: Offer[] = [
 ]
 
 export default function ChatPage() {
+  // Get current locale for multilingual voice support
+  const locale = useLocale();
+  
+  // Language mapping for Web Speech API
+  const getLanguageCode = (loc: string): string => {
+    const langMap: Record<string, string> = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'pa-Guru': 'pa-IN',
+      'mwr': 'hi-IN',
+      'te': 'te-IN',
+      'mr': 'mr-IN',
+      'bn': 'bn-IN'
+    };
+    return langMap[loc] || 'en-US';
+  };
+  
   // WebSocket connection to Flask server
   const wsRef = useRef<WebSocket | null>(null)
   const pendingAssistantIdRef = useRef<number | null>(null)
@@ -214,6 +186,7 @@ export default function ChatPage() {
   const [userProfile, setUserProfile] = useState<UserProfile>({})
   const [collectionStep, setCollectionStep] = useState(0)
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
+  const [showVoiceAssistant, setShowVoiceAssistant] = useState(false)
   
   // Voice playback states
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true)
@@ -224,7 +197,7 @@ export default function ChatPage() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<ISpeechRecognition | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSpokenMessageIdRef = useRef<number | null>(null)
@@ -237,10 +210,13 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    scrollToBottom()
+    // Don't auto-scroll when voice assistant is active
+    if (!showVoiceAssistant) {
+      scrollToBottom()
+    }
   }, [messages, showOffers, showUpload])
 
-  // Speak text using ElevenLabs
+  // Speak text using FREE Web Speech API with multilingual support
   const speak = useCallback(async (text: string, messageId?: number) => {
     if (!isVoiceEnabled || !text || isSpeakingRef.current) return
 
@@ -253,50 +229,89 @@ export default function ChatPage() {
       isSpeakingRef.current = true
       if (messageId) lastSpokenMessageIdRef.current = messageId
       
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
-        audioRef.current = null
-      }
-
-      const audioBlob = await textToSpeech(text, VOICE_IDS.RACHEL)
-      setIsGeneratingVoice(false)
-      setIsSpeaking(true)
+      // Stop any existing speech
+      stopSpeakingCallback();
       
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
+      // Use Web Speech API (FREE, browser-native)
+      const synthesis = window.speechSynthesis;
       
-      audioRef.current = audio
-      setCurrentAudio(audio)
-
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
-        isSpeakingRef.current = false
-        setIsSpeaking(false)
-        setCurrentAudio(null)
-        audioRef.current = null
+      // Ensure voices are loaded (some browsers need this)
+      let voices = synthesis.getVoices();
+      if (voices.length === 0) {
+        // Wait for voices to load
+        await new Promise<void>((resolve) => {
+          const checkVoices = () => {
+            voices = synthesis.getVoices();
+            if (voices.length > 0) {
+              resolve();
+            }
+          };
+          synthesis.onvoiceschanged = checkVoices;
+          // Timeout after 1 second
+          setTimeout(() => resolve(), 1000);
+        });
+        voices = synthesis.getVoices();
       }
-
-      audio.onerror = (error) => {
-        console.error('Audio playback error:', error)
-        URL.revokeObjectURL(audioUrl)
-        isSpeakingRef.current = false
-        setIsSpeaking(false)
-        setIsGeneratingVoice(false)
-        setCurrentAudio(null)
-        audioRef.current = null
+      
+      // If still no voices, use default without voice selection
+      if (voices.length === 0) {
+        console.warn('No speech synthesis voices available, using default');
       }
+      
+      const languageCode = getLanguageCode(locale);
+      
+      // Create utterance with proper language
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = languageCode;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Select best voice for language (with fallback)
+      if (voices.length > 0) {
+        const preferredVoice = voices.find(v => v.lang.startsWith(languageCode.split('-')[0]));
+        const defaultVoice = voices.find(v => v.default);
+        utterance.voice = preferredVoice || defaultVoice || voices[0];
+      }
+      
+      setIsGeneratingVoice(false);
+      setIsSpeaking(true);
 
-      await audio.play()
+      utterance.onend = () => {
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+        setCurrentAudio(null);
+        audioRef.current = null;
+      };
+
+      utterance.onerror = (error) => {
+        // Speech synthesis errors are often not critical and can be safely ignored
+        const errorType = (error as any).error || 'unknown';
+        if (errorType !== 'interrupted' && errorType !== 'canceled') {
+          console.warn(`Speech synthesis ${errorType} (this is usually not critical)`);
+        }
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+        setIsGeneratingVoice(false);
+        setCurrentAudio(null);
+        audioRef.current = null;
+      };
+
+      synthesis.speak(utterance);
+      
     } catch (error) {
-      console.error("Error speaking text:", error)
-      isSpeakingRef.current = false
-      setIsSpeaking(false)
-      setIsGeneratingVoice(false)
+      console.error("Error speaking text:", error);
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+      setIsGeneratingVoice(false);
     }
-  }, [isVoiceEnabled])
+  }, [isVoiceEnabled, locale])
 
-  const stopSpeaking = useCallback(() => {
+  const stopSpeakingCallback = useCallback(() => {
+    // Stop Web Speech API
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
@@ -309,12 +324,12 @@ export default function ChatPage() {
 
   const toggleVoicePlayback = useCallback(() => {
     if (isSpeaking) {
-      stopSpeaking()
+      stopSpeakingCallback()
     }
     setIsVoiceEnabled(!isVoiceEnabled)
-  }, [isVoiceEnabled, isSpeaking, stopSpeaking])
+  }, [isVoiceEnabled, isSpeaking, stopSpeakingCallback])
 
-  // Auto-speak assistant messages
+  // Auto-speak assistant messages (even when voice assistant is active)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage && lastMessage.role === "assistant" && isVoiceEnabled && !isSpeakingRef.current) {
@@ -329,6 +344,7 @@ export default function ChatPage() {
         .trim()
       
       if (cleanText) {
+        console.log('Auto-speaking AI response:', cleanText.substring(0, 50) + '...');
         setTimeout(() => {
           speak(cleanText, lastMessage.id)
         }, 100)
@@ -368,7 +384,7 @@ export default function ChatPage() {
         setIsListening(true)
       }
 
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+      recognitionRef.current.onresult = (event: ISpeechRecognitionEvent) => {
         if (isSpeakingRef.current && audioRef.current) {
           audioRef.current.pause()
           audioRef.current = null
@@ -418,8 +434,8 @@ export default function ChatPage() {
         }
       }
 
-      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      recognitionRef.current.onerror = (event: ISpeechRecognitionErrorEvent) => {
+        if (event.error === 'not-allowed') {
           console.error('Microphone permission denied')
           setMicPermission('denied')
           alert('Microphone access denied. Please allow microphone access in your browser settings.')
@@ -725,7 +741,7 @@ export default function ChatPage() {
       setIsListening(false)
     } else {
       if (isSpeaking) {
-        stopSpeaking()
+        stopSpeakingCallback()
       }
       
       if (!recognitionRef.current) {
@@ -841,9 +857,27 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6" ref={containerRef}>
-        <div className="max-w-4xl mx-auto py-6 space-y-4">
+        {/* Messages Container - Chat continues below */}
+        <div className={`flex-1 px-4 sm:px-6 relative ${showVoiceAssistant ? 'overflow-hidden' : 'overflow-y-auto'}`} ref={containerRef}>
+          {/* Voice Assistant Overlay - Exact same dimensions as messages container */}
+          {showVoiceAssistant && (
+            <div className="absolute inset-0 z-50 bg-background px-4 sm:px-6 overflow-hidden">
+              <div className="w-full max-w-5xl mx-auto h-full">
+                <VoiceAssistant 
+                    onTranscript={(text) => {
+                      setInput(text);
+                      handleSend();
+                    }}
+                    onResponse={async (text) => {
+                      await speak(text);
+                    }}
+                    onClose={() => setShowVoiceAssistant(false)}
+                    messages={messages}
+                  />
+              </div>
+            </div>
+          )}
+        <div className="w-full max-w-5xl mx-auto py-6 space-y-6">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -899,27 +933,21 @@ export default function ChatPage() {
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-md">
+      <div className="shrink-0 pb-3 bg-background/95 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-end gap-2 sm:gap-3">
             <button
-              onClick={toggleVoice}
-              disabled={micPermission === 'denied'}
+              onClick={() => setShowVoiceAssistant(!showVoiceAssistant)}
               className={`
-                p-2.5 sm:p-3 cursor-pointer rounded-full border border-white transition-all shrink-0 relative
-                ${isListening ? "text-primary-foreground" : "bg-muted/80 text-muted-foreground hover:text-foreground hover:bg-muted"}
-                ${micPermission === 'denied' ? 'opacity-50 cursor-not-allowed' : ''}
+                p-2.5 sm:p-3 cursor-pointer rounded-full transition-all shrink-0 relative
+                ${showVoiceAssistant 
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30" 
+                  : "bg-muted/80 text-muted-foreground hover:text-foreground hover:bg-muted border border-border"}
               `}
-              aria-label="Voice input"
-              title={
-                micPermission === 'denied' 
-                  ? 'Microphone access denied - Please enable in browser settings'
-                  : isListening 
-                  ? "Stop listening (Click to stop)" 
-                  : "Start voice input (Click to speak)"
-              }
+              aria-label="Toggle voice assistant"
+              title={showVoiceAssistant ? "Hide Voice Assistant" : "Show Voice Assistant"}
             >
-              {isListening ? <Mic /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+              <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <div className="flex-1 relative">
@@ -942,9 +970,6 @@ export default function ChatPage() {
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Decentralized Agentic AI Powered Loan Assistant with Gemini • Your data is encrypted and secure.
-          </p>
         </div>
       </div>
       </div>

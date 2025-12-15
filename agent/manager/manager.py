@@ -64,7 +64,7 @@ model.eval()  # VERY IMPORTANT: inference-only mode
 
 # Verify model is on GPU
 device = next(model.parameters()).device
-print(f"[Orchestrator] Phi-4 loaded on: {device} ✅")
+print(f"[Orchestrator] Phi-4 loaded on: {device}  ")
 print(f"[GPU] Memory Allocated: {torch.cuda.memory_allocated(0) / 1e9:.2f} GB")
 
 # =====================================================
