@@ -67,7 +67,7 @@ const Introduction = () => {
         {/* Comparison Grid */}
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* Traditional Finance */}
-          <div className="glass-card rounded-xl p-8 border-primary/50" style={{ boxShadow: '0 0 30px hsl(0 100% 50% / 0.2)' }}>
+          <div className="glass-card rounded-xl p-8 border-primary/50">
             <h3 className="font-display text-xl font-bold text-primary text-glow-subtle mb-6 tracking-wide">
               {t("introduction.traditional.title")}
             </h3>
@@ -82,7 +82,7 @@ const Introduction = () => {
           </div>
 
           {/* NeoFin Agentic AI */}
-          <div className="glass-card rounded-xl p-8 border-primary/50" style={{ boxShadow: '0 0 30px hsl(0 100% 50% / 0.2)' }}>
+          <div className="glass-card rounded-xl p-8 border-primary/50">
             <h3 className="font-display text-xl font-bold text-primary text-glow-subtle mb-6 tracking-wide">
               {t("introduction.ourSolution.title")}
            </h3>

@@ -98,7 +98,7 @@ const KeyBenefits = () => {
               className="glass-card rounded-xl p-6 group"
             >
               <motion.div
-                className="w-16 h-16 mb-4 rounded-full bg-card border border-primary/30 flex items-center justify-center text-primary group-hover:border-primary/70 transition-all group-hover:shadow-[0_0_20px_hsl(0_100%_50%/0.3)]"
+                className="w-16 h-16 mb-4 rounded-full bg-card border border-primary/30 flex items-center justify-center text-primary group-hover:border-primary/70 transition-all group-hover:shadow-glow-md"
               >
                 {benefit.number}
               </motion.div>

@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { routing } from '@/routing';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
+import { ThemeProvider } from '@/contexts/theme-context';
 import "../globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -39,11 +40,13 @@ export default async function LocaleLayout({children, params}: Props) {
 
   return (
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${geist.className} ${geistMono.className} antialiased dark:selection:text-white dark:selection:bg-red-600`}>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-          <Toaster position="top-right" richColors />
-        </NextIntlClientProvider>
+      <body className={`${geist.className} ${geistMono.className} antialiased selection:text-white selection:bg-primary`} >
+        <ThemeProvider>
+          <NextIntlClientProvider messages={messages}>
+            {children}
+            <Toaster position="top-right" richColors />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

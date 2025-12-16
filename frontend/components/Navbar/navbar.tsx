@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/use-auth';
 import { LogIn, LogOut, User, ChevronDown, Menu as MenuIcon, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
+import { AnimatedThemeToggler } from './animated-theme-toggler';
 
 const Header = () => {
   const { user, loading, login, logout, isAuthenticated } = useAuth();  
@@ -45,13 +46,18 @@ const Header = () => {
                   className="text-xs xl:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors relative group tracking-wide uppercase"
                 >
                   {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300 shadow-[0_0_10px_hsl(0_100%_50%)]" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
                 </motion.a>
               ))}
             </nav>
 
             {/* Right Section */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Theme Toggle */}
+              <div className="hidden lg:flex">
+                <AnimatedThemeToggler />
+              </div>
+
               {/* Language Switcher */}
               <div className="hidden lg:flex">
                 <LanguageSwitcher />
@@ -140,7 +146,7 @@ const Header = () => {
                       leaveFrom="transform scale-100 opacity-100"
                       leaveTo="transform scale-95 opacity-0"
                     >
-                      <Disclosure.Panel className="absolute left-3 right-3 top-[72px] glass-card bg-black/60 rounded-lg shadow-lg ring-1 ring-primary/20 p-4">
+                      <Disclosure.Panel className="absolute left-3 right-3 top-[72px] glass-card bg-background rounded-lg shadow-lg ring-1 ring-primary/20 p-4">
                         {/* Mobile Navigation Links */}
                         <div className="space-y-2 mb-4">
                           {navItems.map((item) => (
@@ -155,10 +161,16 @@ const Header = () => {
                           ))}
                         </div>
 
-                        {/* Mobile Language Switcher */}
-                        <div className="mb-4 px-4">
-                          <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Language</div>
-                          <LanguageSwitcher />
+                        {/* Mobile Theme & Language Controls */}
+                        <div className="mb-4 px-4 space-y-4">
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Theme</div>
+                            <AnimatedThemeToggler />
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Language</div>
+                            <LanguageSwitcher />
+                          </div>
                         </div>
 
                         {/* Mobile Auth Section */}

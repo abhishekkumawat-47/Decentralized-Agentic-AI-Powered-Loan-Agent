@@ -87,9 +87,9 @@ export function ProgressTracker({ currentStage }: ProgressTrackerProps) {
                     w-10 h-10 lg:w-12 lg:h-12 cursor-pointer rounded-full flex items-center justify-center font-medium transition-all relative
                     ${
                       isCompleted
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/50"
+                        ? "bg-primary text-white shadow-lg shadow-primary/50"
                         : isActive
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/50"
+                          ? "bg-primary text-white shadow-lg shadow-primary/50"
                           : "bg-muted/50 border-2 border-border text-muted-foreground"
                     }
                   `}
@@ -102,9 +102,9 @@ export function ProgressTracker({ currentStage }: ProgressTrackerProps) {
                 </div>
                 
                 {/* Tooltip on hover */}
-                <div className="absolute left-full ml-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-red-500 backdrop-blur-md border border-primary/30 rounded-lg px-3 py-2 shadow-lg shadow-primary/20 z-10">
-                  <p className="text-xs font-semibold text-foreground">{stage.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{stage.description}</p>
+                <div className="absolute left-full ml-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-primary backdrop-blur-md border border-primary/30 rounded-tr-3xl rounded-br-3xl rounded-bl-3xl rounded-tl-sm  px-3 py-2 shadow-lg shadow-primary/20 z-10">
+                  <p className="text-xs font-semibold text-white">{stage.label}</p>
+                  <p className="text-[10px] text-white">{stage.description}</p>
                 </div>
               </div>
               

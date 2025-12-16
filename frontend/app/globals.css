@@ -1,11 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap");
 
 @import "tailwindcss";
 
+@variant dark (.dark &);
+
 @theme {
   --font-display: "Orbitron", sans-serif;
-  
+
+  /* Dark mode (default) */
   --color-background: 0 0% 0%;
   --color-foreground: 0 0% 100%;
 
@@ -39,29 +42,106 @@
 
 @layer base {
   :root {
-    /* Cyberpunk design tokens */
+    /* Cyberpunk design tokens - Dark mode */
     --glow-red: 0 0 30px hsl(0 100% 50% / 0.6);
     --glow-strong: 0 0 60px hsl(0 100% 50% / 0.8);
     --glow-subtle: 0 0 20px hsl(0 100% 50% / 0.3);
+  }
+
+  /* Light mode */
+  :root.light {
+    --color-background: 0 0% 100%;
+    --color-foreground: 0 0% 0%;
+
+    --color-card: 0 0% 98%;
+    --color-card-foreground: 0 0% 0%;
+
+    --color-popover: 0 0% 98%;
+    --color-popover-foreground: 0 0% 0%;
+
+    --color-primary: #0066ff;
+    --color-primary-foreground: 0 0% 100%;
+
+    --color-secondary: 0 0% 95%;
+    --color-secondary-foreground: 0 0% 0%;
+
+    --color-muted: 0 0% 92%;
+    --color-muted-foreground: 0 0% 40%;
+
+    --color-accent: #0066ff;
+    --color-accent-foreground: 0 0% 100%;
+
+    --color-destructive: #0066ff;
+    --color-destructive-foreground: 0 0% 100%;
+
+    --color-border: 217 100% 70%;
+    --color-input: 0 0% 92%;
+    --color-ring: #0066ff;
+
+    /* Light mode glow tokens - Blue with reduced intensity */
+    --glow-red: 0 0 15px hsl(217 100% 50% / 0.2);
+    --glow-strong: 0 0 30px hsl(217 100% 50% / 0.3);
+    --glow-subtle: 0 0 10px hsl(217 100% 50% / 0.15);
   }
 }
 
 @layer base {
   * {
     border-color: hsl(var(--border));
+    transition: background-color 0.45s ease, color 0.45s ease,
+      border-color 0.45s ease, fill 0.45s ease, stroke 0.45s ease;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   html {
     scroll-behavior: smooth;
     scroll-padding-top: 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  html:not(.theme-transitioning) * {
+  transition-duration: 0s;
+}
+
+  html::before {
+    content: "";
+    position: fixed;
+    inset: 50%;
+    width: 300vmax;
+    height: 300vmax;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+
+    background: hsl(var(--color-background));
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+
+    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.6s ease;
+  }
+
+  /* EXPAND */
+  html.theme-transitioning::before {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  /* RELEASE */
+  html.theme-transitioning.theme-release::before {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.02);
   }
 
   body {
-    background: hsl(0 0% 0%);
-    color: hsl(0 0% 100%);
-    font-family: 'Rajdhani', sans-serif;
+    background: hsl(var(--color-background));
+    color: hsl(var(--color-foreground));
+    font-family: "Rajdhani", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -70,61 +150,87 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #181818;
+  background: hsl(var(--color-secondary));
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #ff0000;
+  background-color: var(--color-primary);
   border-radius: 10px;
 }
 
 @layer components {
   /* Glass morphism card */
   .glass-card {
-    background: linear-gradient(135deg, hsl(0 0% 8% / 0.8) 0%, hsl(0 0% 4% / 0.9) 100%);
-    border: 1px solid hsl(0 100% 50% / 0.3);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--color-card) / 0.8) 0%,
+      hsl(var(--color-card) / 0.9) 100%
+    );
+    border: 1px solid hsl(var(--color-border) / 0.3);
     backdrop-filter: blur(20px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .glass-card:hover {
-    border-color: hsl(0 100% 50% / 0.6);
-    box-shadow: 0 0 40px hsl(0 100% 50% / 0.3), inset 0 0 20px hsl(0 100% 50% / 0.05);
+    border-color: hsl(var(--color-border) / 0.6);
+    box-shadow: 0 0 40px var(--color-primary) / 0.3,
+      inset 0 0 20px var(--color-primary) / 0.05;
   }
 
   /* Circuit board pattern */
   .circuit-pattern {
-    background-image: 
-      linear-gradient(90deg, hsl(0 100% 50% / 0.05) 1px, transparent 1px),
-      linear-gradient(hsl(0 100% 50% / 0.05) 1px, transparent 1px),
-      radial-gradient(circle at 25% 25%, hsl(0 100% 50% / 0.03) 2px, transparent 2px),
-      radial-gradient(circle at 75% 75%, hsl(0 100% 50% / 0.03) 2px, transparent 2px);
+    background-image: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-primary) 5%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        color-mix(in srgb, var(--color-primary) 5%, transparent) 1px,
+        transparent 1px
+      ),
+      radial-gradient(
+        circle at 25% 25%,
+        color-mix(in srgb, var(--color-primary) 3%, transparent) 2px,
+        transparent 2px
+      ),
+      radial-gradient(
+        circle at 75% 75%,
+        color-mix(in srgb, var(--color-primary) 3%, transparent) 2px,
+        transparent 2px
+      );
     background-size: 60px 60px, 60px 60px, 120px 120px, 120px 120px;
   }
 
   /* Glowing text */
   .text-glow {
-    color: #ff0000 !important;
-    text-shadow: 0 0 0px #ff0000, 0 0 5px #ff0000, 0 0 15px rgba(255, 0, 0, 0.5);
+    color: var(--color-primary) !important;
+    text-shadow: 0 0 0px var(--color-primary), 0 0 2px var(--color-primary),
+      0 0 0px var(--color-primary);
   }
 
   .text-glow-subtle {
-    color: #ff0000 !important;
-    text-shadow: 0 0 8px rgba(255, 0, 0, 0.3);
+    color: var(--color-primary) !important;
+    text-shadow: 0 0 1px var(--color-primary);
   }
 
   .btn-cyber {
-    background: linear-gradient(90deg, hsl(0 100% 40%), hsl(0 100% 50%));
+    background: var(--color-primary);
+    color: white !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
   }
 
   .btn-cyber::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(0 0% 100% / 0.2),
+      transparent
+    );
     transform: translateX(-100%);
     transition: transform 0.6s ease;
   }
@@ -135,20 +241,29 @@
 
   /* Data cable/connection line */
   .data-cable {
-    background: linear-gradient(90deg, hsl(0 100% 50% / 0.8), hsl(0 100% 60% / 0.4));
-    box-shadow: 0 0 10px hsl(0 100% 50% / 0.6);
+    background: linear-gradient(
+      90deg,
+      var(--color-primary) / 0.8,
+      var(--color-primary) / 0.4
+    );
+    box-shadow: 0 0 10px var(--color-primary) / 0.6;
     animation: pulse-cable 2s ease-in-out infinite;
   }
 
   @keyframes pulse-cable {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
   /* Section dot indicator */
   .section-dot {
     @apply w-2 h-2 rounded-full bg-primary;
-    box-shadow: 0 0 15px hsl(0 100% 50%);
+    box-shadow: 0 0 15px var(--color-primary);
   }
 
   /* Marquee animation */
@@ -157,8 +272,12 @@
   }
 
   @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
   }
 
   /* Floating animation */
@@ -167,8 +286,13 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
   }
 
   /* Pulse glow */
@@ -177,18 +301,27 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 10px hsl(0 100% 50% / 0.5); }
-    50% { box-shadow: 0 0 25px hsl(0 100% 50% / 0.8); }
+    0%,
+    100% {
+      box-shadow: 0 0 10px var(--color-primary) / 0.5;
+    }
+    50% {
+      box-shadow: 0 0 25px var(--color-primary) / 0.8;
+    }
   }
 
   /* Intense radial glow background */
   .radial-glow {
-    background: radial-gradient(ellipse at center, hsl(0 100% 50% / 0.15) 0%, transparent 60%);
+    background: radial-gradient(
+      ellipse at center,
+      var(--color-primary) / 0.15 0%,
+      transparent 60%
+    );
   }
 
   /* Scan line effect */
   .scanlines::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     background: repeating-linear-gradient(
@@ -203,13 +336,55 @@
 
   /* Neon border */
   .neon-border {
-    border: 1px solid hsl(0 100% 50% / 0.5);
-    box-shadow: 0 0 10px hsl(0 100% 50% / 0.3), inset 0 0 10px hsl(0 100% 50% / 0.1);
+    border: 1px solid var(--color-primary) / 0.5;
+    box-shadow: 0 0 10px var(--color-primary) / 0.3,
+      inset 0 0 10px var(--color-primary) / 0.1;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Orbitron", sans-serif;
+  }
+
+  /* Theme-aware shadow utilities */
+  .shadow-glow-sm {
+    box-shadow: 0 0 10px var(--color-primary);
+  }
+
+  .shadow-glow-md {
+    box-shadow: 0 0 20px
+      color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: 0 0 30px
+      color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  /* Dark mode specific shadows */
+  .dark .shadow-glow-sm {
+    box-shadow: 0 0 10px hsl(0 100% 50%);
+  }
+
+  .dark .shadow-glow-md {
+    box-shadow: 0 0 20px hsl(0 100% 50% / 0.3);
+  }
+
+  .dark .shadow-glow-lg {
+    box-shadow: 0 0 30px hsl(0 100% 50% / 0.3);
+  }
+
+  /* Light mode specific shadows */
+  .light .shadow-glow-sm {
+    box-shadow: 0 0 10px hsl(217 100% 50% / 0.6);
+  }
+
+  .light .shadow-glow-md {
+    box-shadow: 0 0 20px hsl(217 100% 50% / 0.25);
+  }
+
+  .light .shadow-glow-lg {
+    box-shadow: 0 0 30px hsl(217 100% 50% / 0.25);
   }
 }

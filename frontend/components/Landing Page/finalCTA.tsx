@@ -11,7 +11,7 @@ const FinalCTA = () => {
     <section className="py-32 relative overflow-hidden">
       {/* Intense radial glow background */}
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/30 rounded-full blur-[150px] opacity-70"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/30 rounded-full blur-[150px] opacity-70 hidden dark:block"
       />
       
       <div className="absolute inset-0 circuit-pattern opacity-30" />

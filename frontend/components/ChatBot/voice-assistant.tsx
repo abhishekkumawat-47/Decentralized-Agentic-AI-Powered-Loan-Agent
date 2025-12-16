@@ -200,7 +200,7 @@ export function VoiceAssistant({ onTranscript, onResponse, onClose, messages = [
   }
 
   return (
-    <div className="w-full h-full pt-16 flex flex-col items-center justify-center space-y-12 bg-black">
+    <div className="w-full h-full pt-16 flex flex-col items-center justify-center space-y-12 bg-background">
       <div className="relative w-full flex-1 flex items-center justify-center px-4 sm:px-8">
         <div className="w-full">
           {!isMuted ? (

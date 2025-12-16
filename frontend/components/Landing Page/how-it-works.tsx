@@ -120,12 +120,12 @@ const HowItWorks = () => {
                 className="glass-card rounded-xl p-8 text-center group relative"
               >
                 {/* Step number badge */}
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-display font-bold px-4 py-1 rounded text-sm">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white font-display font-bold px-4 py-1 rounded text-sm">
                   {step.number}
                 </div>
                 
                 <motion.div
-                  className="w-20 h-20 mx-auto mb-6 rounded-full bg-card border border-primary/30 flex items-center justify-center text-primary group-hover:border-primary/70 transition-all group-hover:shadow-[0_0_30px_hsl(0_100%_50%/0.3)]"
+                  className="w-20 h-20 mx-auto mb-6 rounded-full bg-card border border-primary/30 flex items-center justify-center text-primary group-hover:border-primary/70 transition-all group-hover:shadow-glow-lg"
                 >
                   {getStepIcon(step.number)}
                 </motion.div>

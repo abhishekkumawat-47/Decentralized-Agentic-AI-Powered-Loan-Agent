@@ -11,7 +11,7 @@ const HeroSection = () => {
     <section className="relative min-h-screen flex items-center justify-center pt-24 pb-12 overflow-hidden">
 
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/30 rounded-full blur-[150px] opacity-70"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/30 rounded-full blur-[150px] opacity-70 hidden dark:block"
       />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
