@@ -47,22 +47,30 @@ export function ProgressTracker({ currentStage }: ProgressTrackerProps) {
 
   useEffect(() => {
     stepsRef.current.forEach((step, index) => {
+      if (!step) return;
+      
       if (index === currentStage) {
         gsap.to(step, {
           scale: 1.05,
           duration: 0.3,
           ease: "power2.out",
         })
-        gsap.to(step.querySelector(".pulse-ring"), {
-          scale: 1.5,
-          opacity: 0,
-          duration: 1,
-          repeat: -1,
-          ease: "power1.out",
-        })
+        const pulseRing = step.querySelector(".pulse-ring");
+        if (pulseRing) {
+          gsap.to(pulseRing, {
+            scale: 1.5,
+            opacity: 0,
+            duration: 1,
+            repeat: -1,
+            ease: "power1.out",
+          })
+        }
       } else {
         gsap.to(step, { scale: 1, duration: 0.3 })
-        gsap.killTweensOf(step.querySelector(".pulse-ring"))
+        const pulseRing = step.querySelector(".pulse-ring");
+        if (pulseRing) {
+          gsap.killTweensOf(pulseRing);
+        }
       }
     })
   }, [currentStage])

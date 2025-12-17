@@ -21,7 +21,8 @@ export default function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const currentLanguage = languages.find(lang => lang.code === locale) || languages[0];
+  const currentLanguage =
+    languages.find(lang => lang.code === locale) || languages[0];
 
   const handleChange = (newLocale: string) => {
     const pathnameWithoutLocale = pathname.replace(`/${locale}`, '');
@@ -47,7 +48,18 @@ export default function LanguageSwitcher() {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute left-0 mt-2 w-40 sm:w-48 origin-top-right bg-background rounded-lg shadow-lg ring-1 ring-primary/20 focus:outline-none z-50">
+        <Menu.Items
+          className="
+            absolute left-0 mt-2 w-40 sm:w-48 origin-top-left
+            bg-gray-100/80 dark:bg-black/80
+            backdrop-blur-2xl
+            drop-shadow-2xl
+            rounded-lg
+            ring-1 ring-primary/20
+            focus:outline-none
+            z-50
+          "
+        >
           <div className="py-1">
             {languages.map((language) => (
               <Menu.Item key={language.code}>
@@ -55,7 +67,9 @@ export default function LanguageSwitcher() {
                   <button
                     onClick={() => handleChange(language.code)}
                     className={`${
-                      active ? 'bg-primary/10 text-primary' : 'text-foreground'
+                      active
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-foreground'
                     } group flex cursor-pointer w-full items-center justify-between px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors`}
                   >
                     <span className="flex items-center gap-2">

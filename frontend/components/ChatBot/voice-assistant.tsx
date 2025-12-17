@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { AudioRecorder } from '@/lib/audio-recorder';
 import { LiveWaveform, SpeakingWaveform } from './live-waveform';
@@ -23,6 +23,8 @@ export function VoiceAssistant({ onTranscript, onResponse, onClose, messages = [
   
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const locale = useLocale();
+  const interruptionCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const highVolumeCountRef = useRef(0);
 
   useEffect(() => {
     // Check if Web Speech API is supported
@@ -133,22 +135,227 @@ export function VoiceAssistant({ onTranscript, onResponse, onClose, messages = [
     onClose?.();
   };
 
-  const speakResponse = async (text: string) => {
-    if (!audioRecorderRef.current || isMuted) return;
+  // Ref to store current speech utterance for interruption
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  
+  // Start monitoring for user interruption during AI speech
+  const startInterruptionMonitoring = useCallback(() => {
+    if (!audioRecorderRef.current || interruptionCheckRef.current) return;
+    
+    highVolumeCountRef.current = 0;
+    
+    // Start a minimal audio monitoring (without speech recognition) during AI speech
+    const checkInterruption = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        const monitor = () => {
+          if (!isSpeaking || !window.speechSynthesis.speaking) {
+            // Stop monitoring
+            stream.getTracks().forEach(track => track.stop());
+            audioContext.close();
+            highVolumeCountRef.current = 0;
+            return;
+          }
+          
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          
+          // Detect sustained loud audio (likely user speaking)
+          if (average > 50) { // Higher threshold to avoid detecting AI speech
+            highVolumeCountRef.current++;
+            
+            // If loud audio persists for 3 consecutive checks, it's an interruption
+            if (highVolumeCountRef.current >= 3) {
+              console.log('User interruption detected - loud sustained audio');
+              window.speechSynthesis.cancel();
+              setIsSpeaking(false);
+              stream.getTracks().forEach(track => track.stop());
+              audioContext.close();
+              highVolumeCountRef.current = 0;
+              return;
+            }
+          } else {
+            // Reset counter if audio drops
+            highVolumeCountRef.current = 0;
+          }
+          
+          interruptionCheckRef.current = setTimeout(monitor, 100);
+        };
+        
+        monitor();
+      } catch (error) {
+        console.error('Failed to start interruption monitoring:', error);
+      }
+    };
+    
+    checkInterruption();
+  }, [isSpeaking]);
+  
+  const speakResponse = useCallback(async (text: string) => {
+    if (!audioRecorderRef.current || isMuted) {
+      console.log('Speech skipped:', { hasRecorder: !!audioRecorderRef.current, isMuted });
+      return;
+    }
 
     try {
+      console.log('Speaking response:', text.substring(0, 50) + '...');
+      
+      // Cancel any ongoing speech first
+      if (window.speechSynthesis.speaking) {
+        console.log('Cancelling ongoing speech');
+        window.speechSynthesis.cancel();
+      }
+      
+      // Stop recording before speaking to avoid feedback loop
+      const wasRecording = isRecording;
+      if (wasRecording && audioRecorderRef.current) {
+        console.log('Pausing recording for speech');
+        audioRecorderRef.current.stopRecording();
+        setIsRecording(false);
+      }
+      
+      // Small delay to ensure recording stops
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       setIsSpeaking(true);
-      await audioRecorderRef.current.speak(
-        text,
-        locale,
-        () => setIsSpeaking(false),
-        () => setIsSpeaking(true)
-      );
+      
+      // Create and store utterance for potential interruption
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = audioRecorderRef.current.getLanguageCode?.(locale) || locale;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      currentUtteranceRef.current = utterance;
+      
+      // Get best voice for language
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const languageCode = utterance.lang.split('-')[0];
+        const preferredVoice = voices.find((v) => v.lang.startsWith(languageCode));
+        const defaultVoice = voices.find((v) => v.default);
+        utterance.voice = preferredVoice || defaultVoice || voices[0];
+      }
+      
+      utterance.onstart = () => {
+        console.log('Speech started');
+        setIsSpeaking(true);
+        // Start monitoring for interruptions
+        setTimeout(() => {
+          startInterruptionMonitoring();
+        }, 500); // Give it 500ms before starting interruption detection
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech ended naturally');
+        setIsSpeaking(false);
+        currentUtteranceRef.current = null;
+        
+        // Clear interruption monitoring
+        if (interruptionCheckRef.current) {
+          clearTimeout(interruptionCheckRef.current);
+          interruptionCheckRef.current = null;
+        }
+        highVolumeCountRef.current = 0;
+        
+        // Wait a bit longer before resuming to ensure AI speech is fully done
+        if (wasRecording && audioRecorderRef.current) {
+          console.log('Waiting before resuming recording...');
+          // Wait 800ms to ensure speech is completely finished and no echoes
+          setTimeout(() => {
+            if (!audioRecorderRef.current || isSpeaking) return;
+            
+            console.log('Resuming recording after speech');
+            audioRecorderRef.current.startRecording(
+              (text, isFinal) => {
+                if (!isFinal) {
+                  setCurrentTranscript(text);
+                } else {
+                  const trimmedText = text.trim();
+                  const wordCount = trimmedText.split(/\s+/).filter(w => w.length > 0).length;
+                  
+                  if (trimmedText && wordCount >= 1 && trimmedText.length >= 2) {
+                    setCurrentTranscript('');
+                    onTranscript(trimmedText);
+                  } else {
+                    setCurrentTranscript('');
+                  }
+                }
+              },
+              (data) => {
+                setFrequencyData(data);
+              },
+              locale
+            );
+            setIsRecording(true);
+          }, 800);
+        }
+      };
+      
+      utterance.onerror = (error: any) => {
+        const errorType = error.error || 'unknown';
+        if (errorType !== 'interrupted' && errorType !== 'canceled') {
+          console.error(`Speech synthesis ${errorType}`);
+        }
+        setIsSpeaking(false);
+        currentUtteranceRef.current = null;
+        
+        // Clear interruption monitoring
+        if (interruptionCheckRef.current) {
+          clearTimeout(interruptionCheckRef.current);
+          interruptionCheckRef.current = null;
+        }
+        highVolumeCountRef.current = 0;
+        
+        // Resume recording on error
+        if (wasRecording && audioRecorderRef.current && !isRecording) {
+          setTimeout(() => {
+            if (!audioRecorderRef.current) return;
+            audioRecorderRef.current.startRecording(
+              (text, isFinal) => {
+                if (!isFinal) {
+                  setCurrentTranscript(text);
+                } else {
+                  const trimmedText = text.trim();
+                  const wordCount = trimmedText.split(/\s+/).filter(w => w.length > 0).length;
+                  if (trimmedText && wordCount >= 1 && trimmedText.length >= 2) {
+                    setCurrentTranscript('');
+                    onTranscript(trimmedText);
+                  } else {
+                    setCurrentTranscript('');
+                  }
+                }
+              },
+              (data) => setFrequencyData(data),
+              locale
+            );
+            setIsRecording(true);
+          }, 300);
+        }
+      };
+      
+      // Speak using native API
+      window.speechSynthesis.speak(utterance);
     } catch (error) {
       console.error('Error speaking:', error);
       setIsSpeaking(false);
+      currentUtteranceRef.current = null;
+      
+      // Clear interruption monitoring
+      if (interruptionCheckRef.current) {
+        clearTimeout(interruptionCheckRef.current);
+        interruptionCheckRef.current = null;
+      }
+      highVolumeCountRef.current = 0;
     }
-  };
+  }, [isMuted, isRecording, locale, onTranscript, isSpeaking, startInterruptionMonitoring]);
 
   const toggleMute = () => {
     if (isSpeaking && audioRecorderRef.current) {
@@ -174,13 +381,12 @@ export function VoiceAssistant({ onTranscript, onResponse, onClose, messages = [
         
         if (cleanText && !isMuted) {
           console.log('Voice Assistant auto-speaking response:', cleanText.substring(0, 50) + '...');
-          setTimeout(() => {
-            speakResponse(cleanText);
-          }, 500);
+          // Immediate speak without delay for better responsiveness
+          speakResponse(cleanText);
         }
       }
     }
-  }, [messages, isMuted]);
+  }, [messages, isMuted, speakResponse]);
   
   useEffect(() => {
     // Expose the speak function
@@ -200,7 +406,7 @@ export function VoiceAssistant({ onTranscript, onResponse, onClose, messages = [
   }
 
   return (
-    <div className="w-full h-full pt-16 flex flex-col items-center justify-center space-y-12 bg-background">
+    <div className="w-full h-full pt-12 flex flex-col items-center justify-center space-y-12 bg-background">
       <div className="relative w-full flex-1 flex items-center justify-center px-4 sm:px-8">
         <div className="w-full">
           {!isMuted ? (

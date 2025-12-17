@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/contexts/theme-context";
 
 interface LiveWaveformProps {
   frequencyData: Uint8Array;
@@ -14,6 +15,7 @@ export function LiveWaveform({
 }: LiveWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const { theme } = useTheme();
 
   const smoothRef = useRef<number[]>([]);
   const phaseRef = useRef(0);
@@ -47,12 +49,24 @@ export function LiveWaveform({
       const centerX = width / 2;
 
       const gradient = ctx.createLinearGradient(0, 0, 0, h);
-      gradient.addColorStop(0.0, `rgba(255,255,255,${0.9 * opacity})`);
-      gradient.addColorStop(0.2, `rgba(120,200,255,${0.85 * opacity})`);
-      gradient.addColorStop(0.45, `rgba(168,85,247,${0.9 * opacity})`);
-      gradient.addColorStop(0.65, `rgba(236,72,153,${0.85 * opacity})`);
-      gradient.addColorStop(0.85, `rgba(239,68,68,${0.75 * opacity})`);
-      gradient.addColorStop(1, `rgba(20,20,20,${0.2 * opacity})`);
+      
+      if (theme === 'dark') {
+        // Dark mode colors
+        gradient.addColorStop(0.0, `rgba(255,255,255,${0.9 * opacity})`);
+        gradient.addColorStop(0.2, `rgba(120,200,255,${0.85 * opacity})`);
+        gradient.addColorStop(0.45, `rgba(168,85,247,${0.9 * opacity})`);
+        gradient.addColorStop(0.65, `rgba(236,72,153,${0.85 * opacity})`);
+        gradient.addColorStop(0.85, `rgba(239,68,68,${0.75 * opacity})`);
+        gradient.addColorStop(1, `rgba(20,20,20,${0.2 * opacity})`);
+      } else {
+        // Light mode colors - vibrant but visible on light background
+        gradient.addColorStop(0.0, `rgba(59,130,246,${0.95 * opacity})`); // Blue
+        gradient.addColorStop(0.2, `rgba(37,99,235,${0.9 * opacity})`); // Darker Blue
+        gradient.addColorStop(0.45, `rgba(139,92,246,${0.95 * opacity})`); // Purple
+        gradient.addColorStop(0.65, `rgba(219,39,119,${0.9 * opacity})`); // Pink
+        gradient.addColorStop(0.85, `rgba(220,38,38,${0.85 * opacity})`); // Red
+        gradient.addColorStop(1, `rgba(100,100,120,${0.3 * opacity})`); // Gray
+      }
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -145,9 +159,15 @@ export function LiveWaveform({
 
       /* ---------- Background ---------- */
       const bg = ctx.createLinearGradient(0, 0, 0, h);
-      bg.addColorStop(0, "rgba(5,5,10,0.96)");
-      bg.addColorStop(0.5, "rgba(10,10,20,0.96)");
-      bg.addColorStop(1, "rgba(0,0,0,1)");
+      if (theme === 'dark') {
+        bg.addColorStop(0, "rgba(5,5,10,0.96)");
+        bg.addColorStop(0.5, "rgba(10,10,20,0.96)");
+        bg.addColorStop(1, "rgba(0,0,0,1)");
+      } else {
+        bg.addColorStop(0, "rgba(243,244,246,0.8)"); // bg-gray-100/80
+        bg.addColorStop(0.5, "rgba(243,244,246,0.8)");
+        bg.addColorStop(1, "rgba(243,244,246,0.8)");
+      }
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, width, h);
 
@@ -156,8 +176,13 @@ export function LiveWaveform({
       drawWaveLayer(Math.PI, 0.6);
 
       /* ---------- Glow ---------- */
-      ctx.shadowColor = "rgba(168,85,247,0.8)";
-      ctx.shadowBlur = 40;
+      if (theme === 'dark') {
+        ctx.shadowColor = "rgba(168,85,247,0.8)";
+        ctx.shadowBlur = 40;
+      } else {
+        ctx.shadowColor = "rgba(139,92,246,0.6)";
+        ctx.shadowBlur = 30;
+      }
 
       animationFrameRef.current = requestAnimationFrame(draw);
     };
@@ -170,10 +195,12 @@ export function LiveWaveform({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [frequencyData, isActive, height]);
+  }, [frequencyData, isActive, height, theme]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+    <div className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${
+      theme === 'dark' ? 'border border-white/10' : 'border border-gray-200'
+    }`}>
       <canvas ref={canvasRef} className="w-full" style={{ height }} />
     </div>
   );

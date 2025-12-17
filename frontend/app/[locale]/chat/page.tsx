@@ -989,7 +989,7 @@ export default function ChatPage() {
 
             <div className="flex items-center gap-2">
               {/* Theme Toggler */}
-              <div className="hidden lg:flex">
+              <div className="flex">
                 <AnimatedThemeToggler />
               </div>
               {/* WebSocket Status */}
@@ -1053,14 +1053,22 @@ export default function ChatPage() {
         >
           {/* Voice Assistant Overlay - Exact same dimensions as messages container */}
           {showVoiceAssistant && (
-            <div className="absolute inset-0 z-50 bg-background px-4 sm:px-6 overflow-hidden">
-              <div className="w-full max-w-5xl mx-auto h-full">
+            <div className="absolute left-5 top-5 inset-0 z-50 max-w-6xl bg-gray-100 dark:bg-black rounded-4xl overflow-hidden">
+              <div className="w-full max-w-6xl mx-auto h-full">
                 <VoiceAssistant
                   onTranscript={(text) => {
+                    console.log('Voice transcript received:', text);
+                    // Set input first
                     setInput(text);
-                    handleSend();
+                    // Use setTimeout to ensure state updates before sending
+                    setTimeout(() => {
+                      if (handleSendRef.current) {
+                        handleSendRef.current();
+                      }
+                    }, 50);
                   }}
                   onResponse={async (text) => {
+                    console.log('Voice response to speak:', text.substring(0, 50) + '...');
                     await speak(text);
                   }}
                   onClose={() => setShowVoiceAssistant(false)}
@@ -1091,7 +1099,7 @@ export default function ChatPage() {
                       ? "bg-primary text-white rounded-tl-3xl rounded-bl-3xl rounded-br-3xl"
                       : message.role === "system"
                       ? "bg-green-500/10  text-green-600 dark:text-green-400 text-sm border border-green-500/20"
-                      : "bg-muted/80 text-foreground border rounded-bl-3xl rounded-tr-3xl rounded-br-3xl border-border/50"
+                      : "bg-muted/80 text-foreground border rounded-bl-4xl rounded-tr-4xl rounded-br-4xl border-border/50"
                   }
                 `}
                 >

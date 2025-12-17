@@ -281,6 +281,13 @@ export class AudioRecorder {
   }
 
   /**
+   * Get language code (public accessor)
+   */
+  getLanguageCode(locale: string): string {
+    return this.mapLocaleToSpeechLang(locale);
+  }
+
+  /**
    * Check if Web Speech API is supported
    */
   static isSupported(): boolean {
