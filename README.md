@@ -350,11 +350,11 @@ Most Indian languages lack sufficient training data for high-quality NLP models,
 ### **SLM's**
 <img width="422" height="292" alt="phi2_reasoning_comparison" src="https://github.com/user-attachments/assets/faea4fcc-f4b9-4be2-b03d-d86f5134c7ca" />
 <img width="178" height="145" alt="phi2_reasoning_comparison_names" src="https://github.com/user-attachments/assets/8c5c3016-6f2c-438c-81b7-bf06841d9cf0" />
-<img width="946" height="634" alt="phi2_param_comparison" src="https://github.com/user-attachments/assets/c9d342a9-8dc6-4bf4-829a-7120e2ad9219" />
-<img width="661" height="465" alt="size_vs_equivalent_size" src="https://github.com/user-attachments/assets/701a8b5f-c323-41b7-821c-834354543384" />
+<img width="422" height="292" alt="phi2_param_comparison" src="https://github.com/user-attachments/assets/c9d342a9-8dc6-4bf4-829a-7120e2ad9219" />
+<img width="422" height="292" alt="size_vs_equivalent_size" src="https://github.com/user-attachments/assets/701a8b5f-c323-41b7-821c-834354543384" />
 
 ### **Cost and Performance**
-<img width="741" height="437" alt="semantic_cache_greatly_increases_response_times" src="https://github.com/user-attachments/assets/9bfb80b7-b5ab-4bef-8f1f-e066941c78c0" />
+<img width="422" height="292" alt="semantic_cache_greatly_increases_response_times" src="https://github.com/user-attachments/assets/9bfb80b7-b5ab-4bef-8f1f-e066941c78c0" />
 
 ## Installation
 
